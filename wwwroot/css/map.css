@@ -1,0 +1,43 @@
+﻿.cluster-pin {
+    background: #ff5722;
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.search-panel {
+    margin-bottom: 10px;
+}
+
+    .search-panel input {
+        margin-right: 5px;
+        padding: 6px;
+    }
+
+
+.marker-pin {
+    width: 20px;
+    height: 30px;
+    border-radius: 10px 10px 10px 0;
+    transform: rotate(-45deg);
+    position: relative;
+    border: 2px solid white;
+}
+
+.cluster-pin {
+    width: 40px;
+    height: 40px;
+    background-color: #0078ff;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid white;
+}

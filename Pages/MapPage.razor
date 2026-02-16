@@ -1,0 +1,188 @@
+﻿@page "/"
+
+@using RealEstateMap.Services
+@using RealEstateMap.Models
+@inject IJSRuntime JS
+@inject FakeDataService DataService
+
+<h3>Real Estate Map</h3>
+
+<div class="search-panel" style="margin-bottom:10px; display:flex; gap:10px; flex-wrap:wrap;">
+    <input placeholder="Postal Code" @bind="PostalCode" />
+    <input placeholder="City" @bind="City" />
+    <input placeholder="State" @bind="State" />
+    <input type="number" min="1" style="width:100px" @bind="RadiusKm" />
+    <button @onclick="Search">Search</button>
+</div>
+
+<div id="map" style="height:600px; width:100%;"></div>
+
+@code {
+    private DotNetObjectReference<MapPage>? objRef;
+
+    private string? PostalCode;
+    private string? City;
+    private string? State;
+    private double RadiusKm = 5;
+
+    // Cache for map data to avoid recalculating on every zoom/pan
+    private List<HouseLocation> MapDataCache = new();
+    private double LastSouth, LastWest, LastNorth, LastEast;
+    private int LastZoom = 0;
+
+    // Predefined colors for cities
+    private Dictionary<string, string> CityColors = new();
+    private Random rnd = new();
+
+    // -------------------------------------------------
+    // Initialize Map
+    // -------------------------------------------------
+    protected override async Task OnAfterRenderAsync(bool first)
+    {
+        if (first)
+        {
+            objRef = DotNetObjectReference.Create(this);
+
+            await JS.InvokeVoidAsync(
+                "leafletInterop.initMap",
+                "map",
+                20.5937, // center lat
+                78.9629, // center lng
+                5,       // zoom
+                objRef);
+        }
+    }
+
+    // -------------------------------------------------
+    // Called from JS when map moves
+    // -------------------------------------------------
+    [JSInvokable]
+    public async Task MapMoved(double south, double west, double north, double east, int zoom)
+    {
+        // Only reload if bounds or zoom changed significantly
+        if (south == LastSouth && west == LastWest && north == LastNorth && east == LastEast && zoom == LastZoom)
+            return;
+
+        LastSouth = south;
+        LastWest = west;
+        LastNorth = north;
+        LastEast = east;
+        LastZoom = zoom;
+
+        await LoadMapData(south, west, north, east, zoom);
+    }
+
+    // -------------------------------------------------
+    // Load markers for current map bounds
+    // -------------------------------------------------
+    private async Task LoadMapData(double south, double west, double north, double east, int zoom)
+    {
+        await JS.InvokeVoidAsync("leafletInterop.clearLayers");
+
+        // Use cached data if available
+        if (!MapDataCache.Any())
+        {
+            MapDataCache = DataService.GetByBounds(south - 5, west - 5, north + 5, east + 5); // load extra area for smoother panning
+        }
+
+        var visibleData = MapDataCache
+            .Where(h => h.Lat >= south && h.Lat <= north && h.Lng >= west && h.Lng <= east)
+            .ToList();
+
+        if (zoom < 10)
+        {
+            // Clustered view for low zooms
+            var grouped = visibleData.GroupBy(x => (Math.Round(x.Lat, 1), Math.Round(x.Lng, 1)));
+
+            foreach (var g in grouped)
+            {
+                await JS.InvokeVoidAsync(
+                    "leafletInterop.addClusterCount",
+                    g.Key.Item1,
+                    g.Key.Item2,
+                    g.Count());
+            }
+        }
+        else
+        {
+            // Show individual markers
+            foreach (var house in visibleData.Take(200))
+            {
+                var color = GetCityColor(house.City);
+
+                await JS.InvokeVoidAsync(
+                    "leafletInterop.addMarker",
+                    house.Lat,
+                    house.Lng,
+                    $"{house.Address} - {house.City}",
+                    color
+                );
+            }
+        }
+    }
+
+    // -------------------------------------------------
+    // SEARCH BUTTON
+    // -------------------------------------------------
+    private async Task Search()
+    {
+        var results = DataService.Search(PostalCode, City, State, RadiusKm);
+
+        if (!results.Any())
+            return;
+
+        var center = results.First();
+
+        // Clear markers but keep radius circle
+        await JS.InvokeVoidAsync("leafletInterop.clearLayers");
+
+        // Move Map + Draw Radius
+        await JS.InvokeVoidAsync(
+            "leafletInterop.showSearchResult",
+            center.Lat,
+            center.Lng,
+            12,
+            RadiusKm
+        );
+
+        // Add markers for search results
+        foreach (var house in results.Take(200))
+        {
+            var color = GetCityColor(house.City);
+            await JS.InvokeVoidAsync(
+                "leafletInterop.addMarker",
+                house.Lat,
+                house.Lng,
+                $"{house.Address} - {house.City}",
+                color
+            );
+        }
+    }
+
+    // -------------------------------------------------
+    // Assign a color to a city
+    // -------------------------------------------------
+    private string GetCityColor(string city)
+    {
+        if (string.IsNullOrWhiteSpace(city)) return "#0078ff";
+
+        if (!CityColors.ContainsKey(city))
+        {
+            // Generate a random pastel color
+            var r = 100 + rnd.Next(0, 156);
+            var g = 100 + rnd.Next(0, 156);
+            var b = 100 + rnd.Next(0, 156);
+            CityColors[city] = $"rgb({r},{g},{b})";
+        }
+
+        return CityColors[city];
+    }
+
+    // -------------------------------------------------
+    // Cleanup
+    // -------------------------------------------------
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}
