@@ -26,6 +26,29 @@ public sealed class HouseService : IHouseService
             },
             cancellationToken);
 
+
+    public Task<List<HouseLocation>> SearchByCenterAsync(
+        double centerLat,
+        double centerLng,
+        double radiusKm,
+        string? postalCode = null,
+        string? city = null,
+        string? state = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new MapSearchRequest
+        {
+            PostalCode = postalCode,
+            City = city,
+            State = state,
+            CenterLat = centerLat,
+            CenterLng = centerLng,
+            RadiusKm = Math.Clamp(radiusKm, 1, 250)
+        };
+
+        return SearchAsync(request, cancellationToken);
+    }
+
     public Task<List<HouseLocation>> GetBoundsAsync(double south, double west, double north, double east, CancellationToken cancellationToken = default) =>
         SendAsync(
             _ => new HttpRequestMessage(

@@ -241,7 +241,13 @@
                 return;
             }
 
-            var mapResults = await HouseService.SearchAsync(request);
+            var mapResults = await HouseService.SearchByCenterAsync(
+                request.CenterLat!.Value,
+                request.CenterLng!.Value,
+                request.RadiusKm,
+                request.PostalCode,
+                request.City,
+                request.State);
             if (mapResults.Count == 0)
             {
                 StatusMessage = "No properties matched your filters.";

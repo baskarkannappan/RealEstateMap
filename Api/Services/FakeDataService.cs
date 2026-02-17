@@ -6,6 +6,58 @@ public sealed class FakeDataService
 {
     private static readonly string[] Cities = ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Lucknow"];
 
+    private static readonly Dictionary<string, (double Lat, double Lng)> PinCenters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["110001"] = (28.6328, 77.2197),
+        ["400001"] = (18.9388, 72.8354),
+        ["560001"] = (12.9763, 77.6033),
+        ["500001"] = (17.3850, 78.4867),
+        ["600001"] = (13.0827, 80.2707),
+        ["700001"] = (22.5726, 88.3639),
+        ["411001"] = (18.5204, 73.8567),
+        ["380001"] = (23.0225, 72.5714),
+        ["302001"] = (26.9124, 75.7873),
+        ["226001"] = (26.8467, 80.9462)
+    };
+
+    private static readonly Dictionary<string, (double Lat, double Lng)> PinPrefixCenters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["110"] = (28.6139, 77.2090),
+        ["400"] = (19.0760, 72.8777),
+        ["560"] = (12.9716, 77.5946),
+        ["500"] = (17.3850, 78.4867),
+        ["600"] = (13.0827, 80.2707),
+        ["700"] = (22.5726, 88.3639),
+        ["411"] = (18.5204, 73.8567),
+        ["380"] = (23.0225, 72.5714),
+        ["302"] = (26.9124, 75.7873),
+        ["226"] = (26.8467, 80.9462)
+    };
+
+    private static readonly Dictionary<string, (double Lat, double Lng)> CityCenters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["mumbai|maharashtra"] = (19.0760, 72.8777),
+        ["delhi|delhi"] = (28.6139, 77.2090),
+        ["bengaluru|karnataka"] = (12.9716, 77.5946),
+        ["hyderabad|telangana"] = (17.3850, 78.4867),
+        ["chennai|tamil nadu"] = (13.0827, 80.2707),
+        ["kolkata|west bengal"] = (22.5726, 88.3639),
+        ["pune|maharashtra"] = (18.5204, 73.8567),
+        ["ahmedabad|gujarat"] = (23.0225, 72.5714),
+        ["jaipur|rajasthan"] = (26.9124, 75.7873),
+        ["lucknow|uttar pradesh"] = (26.8467, 80.9462),
+        ["mumbai"] = (19.0760, 72.8777),
+        ["delhi"] = (28.6139, 77.2090),
+        ["bengaluru"] = (12.9716, 77.5946),
+        ["hyderabad"] = (17.3850, 78.4867),
+        ["chennai"] = (13.0827, 80.2707),
+        ["kolkata"] = (22.5726, 88.3639),
+        ["pune"] = (18.5204, 73.8567),
+        ["ahmedabad"] = (23.0225, 72.5714),
+        ["jaipur"] = (26.9124, 75.7873),
+        ["lucknow"] = (26.8467, 80.9462)
+    };
+
     private readonly List<HouseLocation> _houses;
 
     public FakeDataService()
@@ -30,7 +82,6 @@ public sealed class FakeDataService
                     _ => "Uttar Pradesh"
                 };
 
-                // India geographic bounds approx: lat 8..37, lng 68..97
                 var lat = 8 + random.NextDouble() * 29;
                 var lng = 68 + random.NextDouble() * 29;
 
@@ -62,51 +113,73 @@ public sealed class FakeDataService
     {
         var radiusKm = Math.Clamp(request.RadiusKm <= 0 ? 10 : request.RadiusKm, 1, 250);
 
-        // If explicit center is provided from client geocoding, use it directly.
-        if (request.CenterLat is double centerLat && request.CenterLng is double centerLng)
-        {
-            var centered = _houses
-                .Where(h => DistanceKm(centerLat, centerLng, h.Lat, h.Lng) <= radiusKm)
-                .Take(1500)
-                .ToList();
-
-            return Task.FromResult(centered);
-        }
-
-        // Backward compatible path: infer from text filters when center isn't provided.
-        IEnumerable<HouseLocation> query = _houses;
-
-        if (!string.IsNullOrWhiteSpace(request.PostalCode))
-        {
-            var pin = request.PostalCode.Trim();
-            query = query.Where(h => h.PostalCode.Equals(pin, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.City))
-        {
-            var city = request.City.Trim();
-            query = query.Where(h => h.City.Contains(city, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.State))
-        {
-            var state = request.State.Trim();
-            query = query.Where(h => h.State.Contains(state, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var filtered = query.ToList();
-        if (filtered.Count == 0)
+        if (!TryResolveCenter(request, out var centerLat, out var centerLng))
         {
             return Task.FromResult(new List<HouseLocation>());
         }
 
-        var center = filtered[0];
-        var byRadius = _houses
-            .Where(h => DistanceKm(center.Lat, center.Lng, h.Lat, h.Lng) <= radiusKm)
+        var centered = _houses
+            .Where(h => DistanceKm(centerLat, centerLng, h.Lat, h.Lng) <= radiusKm)
             .Take(1500)
             .ToList();
 
-        return Task.FromResult(byRadius);
+        return Task.FromResult(centered);
+    }
+
+    private static bool TryResolveCenter(MapSearchRequest request, out double lat, out double lng)
+    {
+        if (request.CenterLat is double centerLat && request.CenterLng is double centerLng)
+        {
+            lat = centerLat;
+            lng = centerLng;
+            return true;
+        }
+
+        var postalCode = request.PostalCode?.Trim();
+        if (!string.IsNullOrWhiteSpace(postalCode))
+        {
+            if (PinCenters.TryGetValue(postalCode, out var exactPinCenter))
+            {
+                lat = exactPinCenter.Lat;
+                lng = exactPinCenter.Lng;
+                return true;
+            }
+
+            if (postalCode.Length >= 3)
+            {
+                var prefix = postalCode[..3];
+                if (PinPrefixCenters.TryGetValue(prefix, out var prefixCenter))
+                {
+                    lat = prefixCenter.Lat;
+                    lng = prefixCenter.Lng;
+                    return true;
+                }
+            }
+        }
+
+        var city = request.City?.Trim();
+        var state = request.State?.Trim();
+        if (!string.IsNullOrWhiteSpace(city) && !string.IsNullOrWhiteSpace(state))
+        {
+            var cityStateKey = $"{city.ToLowerInvariant()}|{state.ToLowerInvariant()}";
+            if (CityCenters.TryGetValue(cityStateKey, out var cityStateCenter))
+            {
+                lat = cityStateCenter.Lat;
+                lng = cityStateCenter.Lng;
+                return true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(city) && CityCenters.TryGetValue(city.ToLowerInvariant(), out var cityCenter))
+        {
+            lat = cityCenter.Lat;
+            lng = cityCenter.Lng;
+            return true;
+        }
+
+        lat = 0;
+        lng = 0;
+        return false;
     }
 
     private static double DistanceKm(double lat1, double lng1, double lat2, double lng2)
