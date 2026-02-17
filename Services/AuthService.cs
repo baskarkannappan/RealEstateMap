@@ -75,7 +75,7 @@ public sealed class AuthService : IAuthService
 
             if (attempt == 1)
             {
-                await Task.Delay(150, cancellationToken);
+                await Task.Delay(200, cancellationToken);
             }
         }
 
@@ -90,7 +90,6 @@ public sealed class AuthService : IAuthService
         try
         {
             using var response = await client.PostAsJsonAsync("api/auth/login", request, cancellationToken);
-
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Auth endpoint returned status code {StatusCode}.", (int)response.StatusCode);
@@ -106,7 +105,13 @@ public sealed class AuthService : IAuthService
 
             _cachedToken = payload.Token;
             _tokenExpiryUtc = payload.ExpiresUtc;
+            _logger.LogInformation("Public API token acquired. Expires at {ExpiryUtc}.", _tokenExpiryUtc);
             return _cachedToken;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Auth request failed. Check API URL/CORS/certificate trust.");
+            return null;
         }
         catch (Exception ex)
         {

@@ -1,4 +1,5 @@
 @page "/"
+@using System.Text.RegularExpressions
 @using RealEstateMap.Models
 @using RealEstateMap.Services
 @inject IJSRuntime JS
@@ -6,10 +7,10 @@
 @inject ILogger<MapPage> Logger
 @implements IAsyncDisposable
 
-<h3>Real Estate Map</h3>
+<h3>India Real Estate Map</h3>
 
 <div class="search-panel mb-3 d-flex flex-wrap gap-2">
-    <input class="form-control" style="max-width:180px" placeholder="Postal Code" @bind="PostalCode" />
+    <input class="form-control" style="max-width:180px" placeholder="PIN Code (6 digits)" @bind="PostalCode" />
     <input class="form-control" style="max-width:180px" placeholder="City" @bind="City" />
     <input class="form-control" style="max-width:180px" placeholder="State" @bind="State" />
     <input class="form-control" style="max-width:120px" type="number" min="1" max="250" @bind="RadiusKm" />
@@ -25,15 +26,16 @@
 
 @code {
     private const int MarkerLimit = 200;
+    private static readonly Regex PinRegex = new("^\\d{6}$", RegexOptions.Compiled);
 
     private DotNetObjectReference<MapPage>? _dotNetRef;
     private CancellationTokenSource? _debounceCts;
-    private readonly SemaphoreSlim _mapMoveLock = new(1, 1);
+    private readonly SemaphoreSlim _moveSemaphore = new(1, 1);
     private readonly Dictionary<string, List<HouseLocation>> _boundsCache = new();
-    private readonly Dictionary<string, string> _cityColors = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<string> _cacheOrder = new();
+    private readonly Dictionary<string, string> _cityColors = new(StringComparer.OrdinalIgnoreCase);
 
-    private int _mapMoveVersion;
+    private int _moveVersion;
     private string? _lastVisualBucket;
 
     private string? PostalCode;
@@ -41,17 +43,6 @@
     private string? State;
     private double RadiusKm = 10;
     private string? StatusMessage;
-
-    [JSInvokable(nameof(MapMoved))]
-    public Task MapMoved(double south, double west, double north, double east, int zoom)
-    {
-        _debounceCts?.Cancel();
-        _debounceCts?.Dispose();
-        _debounceCts = new CancellationTokenSource();
-
-        var version = Interlocked.Increment(ref _mapMoveVersion);
-        return HandleMapMoveDebouncedAsync(south, west, north, east, zoom, version, _debounceCts.Token);
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -61,10 +52,23 @@
         }
 
         _dotNetRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("leafletInterop.initMap", "map", 39.8283, -98.5795, 5, _dotNetRef);
+
+        // India center (approx) + India-friendly zoom.
+        await JS.InvokeVoidAsync("leafletInterop.initMap", "map", 20.5937, 78.9629, 5, _dotNetRef);
     }
 
-    private async Task HandleMapMoveDebouncedAsync(
+    [JSInvokable(nameof(MapMoved))]
+    public Task MapMoved(double south, double west, double north, double east, int zoom)
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+
+        var version = Interlocked.Increment(ref _moveVersion);
+        return ProcessMoveDebouncedAsync(south, west, north, east, zoom, version, _debounceCts.Token);
+    }
+
+    private async Task ProcessMoveDebouncedAsync(
         double south,
         double west,
         double north,
@@ -76,17 +80,17 @@
         try
         {
             await Task.Delay(300, cancellationToken);
+
             var bucket = BuildVisualBucket(south, west, north, east, zoom);
             if (_lastVisualBucket == bucket)
             {
                 return;
             }
 
-            await _mapMoveLock.WaitAsync(cancellationToken);
+            await _moveSemaphore.WaitAsync(cancellationToken);
             try
             {
-                // Ignore stale requests after awaiting lock.
-                if (version != _mapMoveVersion)
+                if (version != _moveVersion)
                 {
                     return;
                 }
@@ -97,13 +101,15 @@
                 var expanded = ExpandBounds(south, west, north, east, 0.35);
                 var cacheKey = BuildCacheKey(expanded.South, expanded.West, expanded.North, expanded.East);
 
-                if (!_boundsCache.TryGetValue(cacheKey, out var cached))
+                List<HouseLocation> candidates;
+                if (!_boundsCache.TryGetValue(cacheKey, out candidates!))
                 {
-                    cached = await HouseService.GetBoundsAsync(expanded.South, expanded.West, expanded.North, expanded.East);
-                    AddCacheEntry(cacheKey, cached);
+                    Logger.LogInformation("Fetching bounds from API: {South},{West},{North},{East}", expanded.South, expanded.West, expanded.North, expanded.East);
+                    candidates = await HouseService.GetBoundsAsync(expanded.South, expanded.West, expanded.North, expanded.East, cancellationToken);
+                    AddCacheEntry(cacheKey, candidates);
                 }
 
-                var visible = cached
+                var visible = candidates
                     .Where(h => h.Lat >= south && h.Lat <= north && h.Lng >= west && h.Lng <= east)
                     .Take(MarkerLimit)
                     .ToList();
@@ -113,7 +119,7 @@
             }
             finally
             {
-                _mapMoveLock.Release();
+                _moveSemaphore.Release();
             }
         }
         catch (OperationCanceledException)
@@ -121,8 +127,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Map movement handling failed.");
-            StatusMessage = "Map data is temporarily unavailable. Keep navigating and retry.";
+            Logger.LogError(ex, "MapMoved pipeline failed.");
+            StatusMessage = "Unable to load map data currently. Please continue navigating.";
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -131,24 +137,35 @@
     {
         try
         {
+            var pin = string.IsNullOrWhiteSpace(PostalCode) ? null : PostalCode.Trim();
+            if (!string.IsNullOrWhiteSpace(pin) && !PinRegex.IsMatch(pin))
+            {
+                StatusMessage = "Please enter a valid 6-digit Indian PIN code.";
+                return;
+            }
+
             var request = new MapSearchRequest
             {
-                PostalCode = string.IsNullOrWhiteSpace(PostalCode) ? null : PostalCode.Trim(),
+                PostalCode = pin,
                 City = string.IsNullOrWhiteSpace(City) ? null : City.Trim(),
                 State = string.IsNullOrWhiteSpace(State) ? null : State.Trim(),
                 RadiusKm = Math.Clamp(RadiusKm, 1, 250)
             };
 
+            Logger.LogInformation("Running India search. PIN:{Pin}, City:{City}, State:{State}, RadiusKm:{Radius}", request.PostalCode, request.City, request.State, request.RadiusKm);
             var results = await HouseService.SearchAsync(request);
+
             if (results.Count == 0)
             {
-                StatusMessage = "No properties matched your search.";
+                StatusMessage = "No properties matched your filters.";
                 await JS.InvokeVoidAsync("leafletInterop.clearLayers");
+                await InvokeAsync(StateHasChanged);
                 return;
             }
 
             var center = results[0];
             var limited = results.Take(MarkerLimit).ToList();
+
             await JS.InvokeVoidAsync("leafletInterop.showSearchResult", center.Lat, center.Lng, 12, request.RadiusKm);
             await RenderMarkersAsync(limited, 12);
 
@@ -157,8 +174,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Search failed.");
-            StatusMessage = "Search is temporarily unavailable. Please try again.";
+            Logger.LogError(ex, "Search pipeline failed.");
+            StatusMessage = "Search is temporarily unavailable.";
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -171,11 +188,11 @@
         {
             var grouped = houses
                 .GroupBy(h => (Math.Round(h.Lat, 1), Math.Round(h.Lng, 1)))
-                .Select(group => new { group.Key.Item1, group.Key.Item2, Count = group.Count() });
+                .Select(group => new { Lat = group.Key.Item1, Lng = group.Key.Item2, Count = group.Count() });
 
             foreach (var cluster in grouped)
             {
-                await JS.InvokeVoidAsync("leafletInterop.addClusterCount", cluster.Item1, cluster.Item2, cluster.Count);
+                await JS.InvokeVoidAsync("leafletInterop.addClusterCount", cluster.Lat, cluster.Lng, cluster.Count);
             }
 
             return;
@@ -200,31 +217,31 @@
             return "#1f77b4";
         }
 
-        if (_cityColors.TryGetValue(city, out var existingColor))
+        if (_cityColors.TryGetValue(city, out var color))
         {
-            return existingColor;
+            return color;
         }
 
         var hue = Math.Abs(city.GetHashCode()) % 360;
-        var generated = $"hsl({hue}, 70%, 45%)";
-        _cityColors[city] = generated;
-        return generated;
+        color = $"hsl({hue}, 70%, 45%)";
+        _cityColors[city] = color;
+        return color;
     }
 
-    private void AddCacheEntry(string key, List<HouseLocation> value)
+    private void AddCacheEntry(string key, List<HouseLocation> data)
     {
         if (_boundsCache.ContainsKey(key))
         {
             return;
         }
 
-        _boundsCache[key] = value;
+        _boundsCache[key] = data;
         _cacheOrder.Enqueue(key);
 
         while (_cacheOrder.Count > 12)
         {
-            var toRemove = _cacheOrder.Dequeue();
-            _boundsCache.Remove(toRemove);
+            var oldKey = _cacheOrder.Dequeue();
+            _boundsCache.Remove(oldKey);
         }
     }
 
@@ -250,7 +267,7 @@
     {
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
-        _mapMoveLock.Dispose();
+        _moveSemaphore.Dispose();
 
         if (_dotNetRef is not null)
         {
@@ -260,7 +277,7 @@
             }
             catch (Exception ex)
             {
-                Logger.LogDebug(ex, "Map JS disposal failed during teardown.");
+                Logger.LogDebug(ex, "Error while disposing map interop.");
             }
 
             _dotNetRef.Dispose();

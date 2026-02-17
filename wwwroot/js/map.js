@@ -28,7 +28,6 @@ window.leafletInterop = {
             showCoverageOnHover: false,
             zoomToBoundsOnClick: true
         });
-
         this.map.addLayer(this.markersLayer);
 
         this.moveHandler = () => {
@@ -38,16 +37,16 @@ window.leafletInterop = {
 
             const bounds = this.map.getBounds();
             this.dotNetHelper.invokeMethodAsync(
-                "MapMoved",
+                'MapMoved',
                 bounds.getSouth(),
                 bounds.getWest(),
                 bounds.getNorth(),
                 bounds.getEast(),
                 this.map.getZoom())
-                .catch(error => console.warn("MapMoved callback failed", error));
+                .catch(error => console.error('JS->Blazor MapMoved failed', error));
         };
 
-        this.map.on("moveend", this.moveHandler);
+        this.map.on('moveend', this.moveHandler);
         this.moveHandler();
     },
 
@@ -64,8 +63,8 @@ window.leafletInterop = {
 
         const marker = L.circleMarker([lat, lng], {
             radius: 8,
-            color: color || "#1f77b4",
-            fillColor: color || "#1f77b4",
+            color: color || '#1f77b4',
+            fillColor: color || '#1f77b4',
             fillOpacity: 0.8,
             weight: 1
         }).bindPopup(text);
@@ -80,7 +79,7 @@ window.leafletInterop = {
 
         const icon = L.divIcon({
             html: `<div class="cluster-pin">${count}</div>`,
-            className: "",
+            className: '',
             iconSize: [40, 40],
             iconAnchor: [20, 40]
         });
@@ -103,8 +102,8 @@ window.leafletInterop = {
         if (radiusKm && radiusKm > 0) {
             this.radiusCircle = L.circle([lat, lng], {
                 radius: radiusKm * 1000,
-                color: "#ff7f0e",
-                fillColor: "#ff7f0e",
+                color: '#ff7f0e',
+                fillColor: '#ff7f0e',
                 fillOpacity: 0.15,
                 weight: 2
             }).addTo(this.map);
@@ -113,7 +112,7 @@ window.leafletInterop = {
 
     disposeMap: function () {
         if (this.map && this.moveHandler) {
-            this.map.off("moveend", this.moveHandler);
+            this.map.off('moveend', this.moveHandler);
         }
 
         if (this.map) {
@@ -121,9 +120,9 @@ window.leafletInterop = {
         }
 
         this.map = null;
-        this.moveHandler = null;
+        this.dotNetHelper = null;
         this.markersLayer = null;
         this.radiusCircle = null;
-        this.dotNetHelper = null;
+        this.moveHandler = null;
     }
 };

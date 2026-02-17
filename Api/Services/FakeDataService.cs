@@ -4,21 +4,45 @@ namespace RealEstateMap.Api.Services;
 
 public sealed class FakeDataService
 {
+    private static readonly string[] Cities = ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Lucknow"];
     private readonly List<HouseLocation> _houses;
 
     public FakeDataService()
     {
         var random = new Random(42);
-        _houses = Enumerable.Range(1, 2500)
-            .Select(index => new HouseLocation
+        _houses = Enumerable.Range(1, 3500)
+            .Select(index =>
             {
-                Id = index.ToString(),
-                Lat = 39.5 + (random.NextDouble() - 0.5) * 8,
-                Lng = -98.35 + (random.NextDouble() - 0.5) * 12,
-                Address = $"{100 + index} Main St",
-                City = $"City {random.Next(1, 30)}",
-                State = $"State {random.Next(1, 8)}",
-                PostalCode = $"{70000 + random.Next(0, 9999)}"
+                var cityIndex = random.Next(Cities.Length);
+                var city = Cities[cityIndex];
+                var state = cityIndex switch
+                {
+                    0 => "Maharashtra",
+                    1 => "Delhi",
+                    2 => "Karnataka",
+                    3 => "Telangana",
+                    4 => "Tamil Nadu",
+                    5 => "West Bengal",
+                    6 => "Maharashtra",
+                    7 => "Gujarat",
+                    8 => "Rajasthan",
+                    _ => "Uttar Pradesh"
+                };
+
+                // India geographic bounds approx: lat 8..37, lng 68..97
+                var lat = 8 + random.NextDouble() * 29;
+                var lng = 68 + random.NextDouble() * 29;
+
+                return new HouseLocation
+                {
+                    Id = index.ToString(),
+                    Lat = lat,
+                    Lng = lng,
+                    Address = $"{100 + index} Residency Road",
+                    City = city,
+                    State = state,
+                    PostalCode = $"{100000 + random.Next(0, 899999):D6}"
+                };
             })
             .ToList();
     }
@@ -27,7 +51,7 @@ public sealed class FakeDataService
     {
         var results = _houses
             .Where(h => h.Lat >= south && h.Lat <= north && h.Lng >= west && h.Lng <= east)
-            .Take(1000)
+            .Take(1500)
             .ToList();
 
         return Task.FromResult(results);
@@ -39,8 +63,8 @@ public sealed class FakeDataService
 
         if (!string.IsNullOrWhiteSpace(request.PostalCode))
         {
-            var postalCode = request.PostalCode.Trim();
-            query = query.Where(h => h.PostalCode.Equals(postalCode, StringComparison.OrdinalIgnoreCase));
+            var pin = request.PostalCode.Trim();
+            query = query.Where(h => h.PostalCode.Equals(pin, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(request.City))
@@ -63,9 +87,10 @@ public sealed class FakeDataService
 
         var center = filtered[0];
         var radiusKm = Math.Clamp(request.RadiusKm <= 0 ? 10 : request.RadiusKm, 1, 250);
+
         var byRadius = filtered
             .Where(h => DistanceKm(center.Lat, center.Lng, h.Lat, h.Lng) <= radiusKm)
-            .Take(1000)
+            .Take(1500)
             .ToList();
 
         return Task.FromResult(byRadius);

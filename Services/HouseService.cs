@@ -18,30 +18,37 @@ public sealed class HouseService : IHouseService
         _logger = logger;
     }
 
-    public Task<List<HouseLocation>> SearchAsync(MapSearchRequest request) =>
-        SendAsync(client => new HttpRequestMessage(HttpMethod.Post, "api/house/search")
-        {
-            Content = JsonContent.Create(request)
-        });
+    public Task<List<HouseLocation>> SearchAsync(MapSearchRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync(
+            _ => new HttpRequestMessage(HttpMethod.Post, "api/house/search")
+            {
+                Content = JsonContent.Create(request)
+            },
+            cancellationToken);
 
-    public Task<List<HouseLocation>> GetBoundsAsync(double south, double west, double north, double east) =>
-        SendAsync(client => new HttpRequestMessage(
-            HttpMethod.Get,
-            $"api/house/bounds?south={south:F6}&west={west:F6}&north={north:F6}&east={east:F6}"));
+    public Task<List<HouseLocation>> GetBoundsAsync(double south, double west, double north, double east, CancellationToken cancellationToken = default) =>
+        SendAsync(
+            _ => new HttpRequestMessage(
+                HttpMethod.Get,
+                $"api/house/bounds?south={south:F6}&west={west:F6}&north={north:F6}&east={east:F6}"),
+            cancellationToken);
 
-    private async Task<List<HouseLocation>> SendAsync(Func<HttpClient, HttpRequestMessage> requestFactory)
+    private async Task<List<HouseLocation>> SendAsync(
+        Func<HttpClient, HttpRequestMessage> requestFactory,
+        CancellationToken externalCancellationToken)
     {
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, externalCancellationToken);
+        var ct = linkedCts.Token;
 
         try
         {
-            // One normal try + one forced refresh try.
             for (var attempt = 1; attempt <= 2; attempt++)
             {
-                var token = await _authService.GetTokenAsync(timeoutCts.Token);
+                var token = await _authService.GetTokenAsync(ct);
                 if (string.IsNullOrWhiteSpace(token))
                 {
-                    _logger.LogWarning("Skipping API call because no token is available.");
+                    _logger.LogWarning("Skipping API call because token acquisition failed.");
                     return [];
                 }
 
@@ -49,11 +56,12 @@ public sealed class HouseService : IHouseService
                 using var request = requestFactory(client);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-                using var response = await client.SendAsync(request, timeoutCts.Token);
+                _logger.LogDebug("Calling API endpoint {Method} {Path}.", request.Method, request.RequestUri);
+                using var response = await client.SendAsync(request, ct);
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized && attempt == 1)
                 {
-                    _logger.LogWarning("API returned 401. Invalidating token and retrying once.");
+                    _logger.LogWarning("API returned 401, refreshing token and retrying once.");
                     _authService.InvalidateToken();
                     continue;
                 }
@@ -64,7 +72,7 @@ public sealed class HouseService : IHouseService
                     return [];
                 }
 
-                var payload = await response.Content.ReadFromJsonAsync<List<HouseLocation>>(cancellationToken: timeoutCts.Token);
+                var payload = await response.Content.ReadFromJsonAsync<List<HouseLocation>>(cancellationToken: ct);
                 return payload ?? [];
             }
         }
@@ -74,11 +82,11 @@ public sealed class HouseService : IHouseService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP failure while calling API.");
+            _logger.LogError(ex, "HTTP error calling API. Verify API URL, HTTPS cert trust and CORS policy.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected API service error.");
+            _logger.LogError(ex, "Unexpected HouseService error.");
         }
 
         return [];

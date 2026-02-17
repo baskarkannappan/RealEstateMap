@@ -15,7 +15,18 @@ builder.Services.Configure<ApiOptions>(builder.Configuration.GetSection("Api"));
 builder.Services.AddHttpClient("ApiClient", (sp, client) =>
 {
     var options = sp.GetRequiredService<IOptions<ApiOptions>>().Value;
-    client.BaseAddress = new Uri(options.BaseUrl);
+    var baseUrl = options.BaseUrl?.Trim();
+    if (string.IsNullOrWhiteSpace(baseUrl))
+    {
+        throw new InvalidOperationException("Api:BaseUrl is missing in wwwroot/appsettings.json.");
+    }
+
+    if (!baseUrl.EndsWith('/'))
+    {
+        baseUrl += "/";
+    }
+
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
     client.Timeout = TimeSpan.FromSeconds(20);
 });
 
