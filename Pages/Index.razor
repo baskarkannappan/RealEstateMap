@@ -1,55 +1,6 @@
-﻿@page "/map"
-@inject IJSRuntime JS
-@using RealEstateMap.Models
+@page "/map"
 
-<h3>India Real Estate Map</h3>
+<PageTitle>Real Estate Map</PageTitle>
 
-<div id="map" style="height:600px;"></div>
-
-@code {
-
-    private List<HouseLocation> _data = new();
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync(
-                "leafletInterop.initMap",
-                "map",
-                20.5937,   // India center
-                78.9629,
-                5);
-
-            GenerateFakeData();
-        }
-    }
-
-    private void GenerateFakeData()
-    {
-        var rnd = new Random();
-
-        for (int i = 0; i < 2000; i++)
-        {
-            _data.Add(new HouseLocation
-            {
-                Lat = 8 + rnd.NextDouble() * 25,
-                Lng = 68 + rnd.NextDouble() * 30,
-                Address = $"House {i}",
-                City = "India",
-                Pincode = rnd.Next(600000, 699999).ToString()
-            });
-        }
-    }
-
-    [JSInvokable]
-    public static async Task MapMoved(
-        double south,
-        double west,
-        double north,
-        double east,
-        int zoom)
-    {
-        Console.WriteLine($"Map moved Zoom:{zoom}");
-    }
-}
+<h1>Real Estate Map</h1>
+<p>Use the navigation menu to open the live map at the home route.</p>
