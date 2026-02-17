@@ -97,6 +97,13 @@ window.leafletInterop = {
         return { lat: center.lat, lng: center.lng, zoom: this.map.getZoom() };
     },
 
+    clearRadius: function () {
+        if (this.map && this.radiusCircle) {
+            this.map.removeLayer(this.radiusCircle);
+            this.radiusCircle = null;
+        }
+    },
+
     showSearchResult: function (lat, lng, zoom, radiusKm) {
         if (!this.map) {
             return;
@@ -104,10 +111,7 @@ window.leafletInterop = {
 
         this.map.setView([lat, lng], zoom || 12);
 
-        if (this.radiusCircle) {
-            this.map.removeLayer(this.radiusCircle);
-            this.radiusCircle = null;
-        }
+        this.clearRadius();
 
         if (radiusKm && radiusKm > 0) {
             this.radiusCircle = L.circle([lat, lng], {

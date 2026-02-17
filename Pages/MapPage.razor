@@ -100,10 +100,11 @@
     private readonly Dictionary<string, List<HouseLocation>> _boundsCache = new();
     private readonly Queue<string> _cacheOrder = new();
     private readonly Dictionary<string, string> _cityColors = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, List<HouseLocation>> _listCache = new();
 
     private int _moveVersion;
     private string? _lastVisualBucket;
+    private bool _skipNextMapMovedEvent;
+    private bool _isExplicitSearchInProgress;
     private bool _mapInitialized;
     private bool _pendingMapInit = true;
 
@@ -134,6 +135,17 @@
     public Task MapMoved(double south, double west, double north, double east, int zoom)
     {
         if (!IsMapVisible)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (_skipNextMapMovedEvent)
+        {
+            _skipNextMapMovedEvent = false;
+            return Task.CompletedTask;
+        }
+
+        if (_isExplicitSearchInProgress)
         {
             return Task.CompletedTask;
         }
@@ -225,13 +237,16 @@
                 return;
             }
 
-            var listCacheKey = $"{request.PostalCode}|{request.City}|{request.State}|{request.CenterLat}|{request.CenterLng}|{request.RadiusKm}";
-            if (!_listCache.TryGetValue(listCacheKey, out var listResults))
-            {
-                listResults = await HouseService.GetListAsync(request);
-                _listCache[listCacheKey] = listResults;
-            }
+            _isExplicitSearchInProgress = true;
+            _skipNextMapMovedEvent = true;
+            _lastVisualBucket = null;
+            _boundsCache.Clear();
+            _cacheOrder.Clear();
 
+            await JS.InvokeVoidAsync("leafletInterop.clearLayers");
+            await JS.InvokeVoidAsync("leafletInterop.clearRadius");
+
+            var listResults = await HouseService.GetListAsync(request);
             ListViewData = listResults.Take(MarkerLimit).ToList();
 
             if (!IsMapVisible)
@@ -248,6 +263,7 @@
                 request.PostalCode,
                 request.City,
                 request.State);
+
             if (mapResults.Count == 0)
             {
                 StatusMessage = "No properties matched your filters.";
@@ -275,6 +291,10 @@
             Logger.LogError(ex, "Search pipeline failed.");
             StatusMessage = "Search is temporarily unavailable.";
             await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            _isExplicitSearchInProgress = false;
         }
     }
 
