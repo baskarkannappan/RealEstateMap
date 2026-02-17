@@ -42,6 +42,58 @@
     private const int MarkerLimit = 200;
     private static readonly Regex PinRegex = new("^\\d{6}$", RegexOptions.Compiled);
 
+    private static readonly Dictionary<string, (double Lat, double Lng)> PinCenters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["110001"] = (28.6328, 77.2197),
+        ["400001"] = (18.9388, 72.8354),
+        ["560001"] = (12.9763, 77.6033),
+        ["500001"] = (17.3850, 78.4867),
+        ["600001"] = (13.0827, 80.2707),
+        ["700001"] = (22.5726, 88.3639),
+        ["411001"] = (18.5204, 73.8567),
+        ["380001"] = (23.0225, 72.5714),
+        ["302001"] = (26.9124, 75.7873),
+        ["226001"] = (26.8467, 80.9462)
+    };
+
+    private static readonly Dictionary<string, (double Lat, double Lng)> PinPrefixCenters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["110"] = (28.6139, 77.2090),
+        ["400"] = (19.0760, 72.8777),
+        ["560"] = (12.9716, 77.5946),
+        ["500"] = (17.3850, 78.4867),
+        ["600"] = (13.0827, 80.2707),
+        ["700"] = (22.5726, 88.3639),
+        ["411"] = (18.5204, 73.8567),
+        ["380"] = (23.0225, 72.5714),
+        ["302"] = (26.9124, 75.7873),
+        ["226"] = (26.8467, 80.9462)
+    };
+
+    private static readonly Dictionary<string, (double Lat, double Lng)> CityCenters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["mumbai|maharashtra"] = (19.0760, 72.8777),
+        ["delhi|delhi"] = (28.6139, 77.2090),
+        ["bengaluru|karnataka"] = (12.9716, 77.5946),
+        ["hyderabad|telangana"] = (17.3850, 78.4867),
+        ["chennai|tamil nadu"] = (13.0827, 80.2707),
+        ["kolkata|west bengal"] = (22.5726, 88.3639),
+        ["pune|maharashtra"] = (18.5204, 73.8567),
+        ["ahmedabad|gujarat"] = (23.0225, 72.5714),
+        ["jaipur|rajasthan"] = (26.9124, 75.7873),
+        ["lucknow|uttar pradesh"] = (26.8467, 80.9462),
+        ["mumbai"] = (19.0760, 72.8777),
+        ["delhi"] = (28.6139, 77.2090),
+        ["bengaluru"] = (12.9716, 77.5946),
+        ["hyderabad"] = (17.3850, 78.4867),
+        ["chennai"] = (13.0827, 80.2707),
+        ["kolkata"] = (22.5726, 88.3639),
+        ["pune"] = (18.5204, 73.8567),
+        ["ahmedabad"] = (23.0225, 72.5714),
+        ["jaipur"] = (26.9124, 75.7873),
+        ["lucknow"] = (26.8467, 80.9462)
+    };
+
     private DotNetObjectReference<MapPage>? _dotNetRef;
     private CancellationTokenSource? _debounceCts;
     private readonly SemaphoreSlim _moveSemaphore = new(1, 1);
@@ -173,7 +225,7 @@
                 return;
             }
 
-            var listCacheKey = $"{request.PostalCode}|{request.City}|{request.State}|{request.RadiusKm}";
+            var listCacheKey = $"{request.PostalCode}|{request.City}|{request.State}|{request.CenterLat}|{request.CenterLng}|{request.RadiusKm}";
             if (!_listCache.TryGetValue(listCacheKey, out var listResults))
             {
                 listResults = await HouseService.GetListAsync(request);
@@ -189,24 +241,24 @@
                 return;
             }
 
-            Logger.LogInformation("Running map search. PIN:{Pin}, City:{City}, State:{State}, RadiusKm:{Radius}", request.PostalCode, request.City, request.State, request.RadiusKm);
             var mapResults = await HouseService.SearchAsync(request);
-
             if (mapResults.Count == 0)
             {
                 StatusMessage = "No properties matched your filters.";
                 await JS.InvokeVoidAsync("leafletInterop.clearLayers");
+                await JS.InvokeVoidAsync("leafletInterop.showSearchResult", request.CenterLat!.Value, request.CenterLng!.Value, 12, request.RadiusKm);
                 await InvokeAsync(StateHasChanged);
                 return;
             }
 
-            var center = mapResults[0];
-            _savedLat = center.Lat;
-            _savedLng = center.Lng;
+            var centerLat = request.CenterLat ?? _savedLat;
+            var centerLng = request.CenterLng ?? _savedLng;
+            _savedLat = centerLat;
+            _savedLng = centerLng;
             _savedZoom = 12;
 
             var limited = mapResults.Take(MarkerLimit).ToList();
-            await JS.InvokeVoidAsync("leafletInterop.showSearchResult", center.Lat, center.Lng, 12, request.RadiusKm);
+            await JS.InvokeVoidAsync("leafletInterop.showSearchResult", centerLat, centerLng, 12, request.RadiusKm);
             await RenderMarkersAsync(limited, 12);
 
             StatusMessage = $"Loaded {limited.Count} properties.";
@@ -290,13 +342,70 @@
             return null;
         }
 
+        var city = string.IsNullOrWhiteSpace(City) ? null : City.Trim();
+        var state = string.IsNullOrWhiteSpace(State) ? null : State.Trim();
+
+        if (!TryResolveCenter(pin, city, state, out var centerLat, out var centerLng))
+        {
+            StatusMessage = "Could not resolve search center for the provided India location.";
+            return null;
+        }
+
         return new MapSearchRequest
         {
             PostalCode = pin,
-            City = string.IsNullOrWhiteSpace(City) ? null : City.Trim(),
-            State = string.IsNullOrWhiteSpace(State) ? null : State.Trim(),
+            City = city,
+            State = state,
+            CenterLat = centerLat,
+            CenterLng = centerLng,
             RadiusKm = Math.Clamp(RadiusKm, 1, 250)
         };
+    }
+
+    private static bool TryResolveCenter(string? postalCode, string? city, string? state, out double lat, out double lng)
+    {
+        if (!string.IsNullOrWhiteSpace(postalCode))
+        {
+            if (PinCenters.TryGetValue(postalCode, out var exactPinCenter))
+            {
+                lat = exactPinCenter.Lat;
+                lng = exactPinCenter.Lng;
+                return true;
+            }
+
+            if (postalCode.Length >= 3)
+            {
+                var prefix = postalCode[..3];
+                if (PinPrefixCenters.TryGetValue(prefix, out var prefixCenter))
+                {
+                    lat = prefixCenter.Lat;
+                    lng = prefixCenter.Lng;
+                    return true;
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(city) && !string.IsNullOrWhiteSpace(state))
+        {
+            var key = $"{city.ToLowerInvariant()}|{state.ToLowerInvariant()}";
+            if (CityCenters.TryGetValue(key, out var cityStateCenter))
+            {
+                lat = cityStateCenter.Lat;
+                lng = cityStateCenter.Lng;
+                return true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(city) && CityCenters.TryGetValue(city.ToLowerInvariant(), out var cityCenter))
+        {
+            lat = cityCenter.Lat;
+            lng = cityCenter.Lng;
+            return true;
+        }
+
+        lat = 0;
+        lng = 0;
+        return false;
     }
 
     private async Task RenderMarkersAsync(List<HouseLocation> houses, int zoom)

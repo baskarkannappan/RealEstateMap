@@ -5,6 +5,7 @@ namespace RealEstateMap.Api.Services;
 public sealed class FakeDataService
 {
     private static readonly string[] Cities = ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Lucknow"];
+
     private readonly List<HouseLocation> _houses;
 
     public FakeDataService()
@@ -59,6 +60,20 @@ public sealed class FakeDataService
 
     public Task<List<HouseLocation>> SearchAsync(MapSearchRequest request, CancellationToken cancellationToken)
     {
+        var radiusKm = Math.Clamp(request.RadiusKm <= 0 ? 10 : request.RadiusKm, 1, 250);
+
+        // If explicit center is provided from client geocoding, use it directly.
+        if (request.CenterLat is double centerLat && request.CenterLng is double centerLng)
+        {
+            var centered = _houses
+                .Where(h => DistanceKm(centerLat, centerLng, h.Lat, h.Lng) <= radiusKm)
+                .Take(1500)
+                .ToList();
+
+            return Task.FromResult(centered);
+        }
+
+        // Backward compatible path: infer from text filters when center isn't provided.
         IEnumerable<HouseLocation> query = _houses;
 
         if (!string.IsNullOrWhiteSpace(request.PostalCode))
@@ -86,9 +101,7 @@ public sealed class FakeDataService
         }
 
         var center = filtered[0];
-        var radiusKm = Math.Clamp(request.RadiusKm <= 0 ? 10 : request.RadiusKm, 1, 250);
-
-        var byRadius = filtered
+        var byRadius = _houses
             .Where(h => DistanceKm(center.Lat, center.Lng, h.Lat, h.Lng) <= radiusKm)
             .Take(1500)
             .ToList();
