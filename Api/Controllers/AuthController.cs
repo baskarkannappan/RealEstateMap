@@ -41,8 +41,8 @@ public sealed class AuthController : ControllerBase
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, "public-map-client"),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new Claim("sub", "public-map-client"),
+            new Claim("jti", Guid.NewGuid().ToString("N")),
             new Claim("scope", "houses.read")
         };
 

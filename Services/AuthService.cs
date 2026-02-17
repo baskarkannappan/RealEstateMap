@@ -65,7 +65,6 @@ public sealed class AuthService : IAuthService
 
     private async Task<string?> RequestTokenWithRetryAsync(CancellationToken cancellationToken)
     {
-        // Retry once to handle transient failures.
         for (var attempt = 1; attempt <= 2; attempt++)
         {
             var token = await RequestTokenAsync(cancellationToken);
@@ -88,33 +87,32 @@ public sealed class AuthService : IAuthService
         var client = _httpClientFactory.CreateClient("ApiClient");
         var request = new LoginRequest { PublicApiKey = _apiOptions.PublicApiKey };
 
-        HttpResponseMessage response;
         try
         {
-            response = await client.PostAsJsonAsync("api/auth/login", request, cancellationToken);
+            using var response = await client.PostAsJsonAsync("api/auth/login", request, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Auth endpoint returned status code {StatusCode}.", (int)response.StatusCode);
+                return null;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: cancellationToken);
+            if (payload is null || string.IsNullOrWhiteSpace(payload.Token))
+            {
+                _logger.LogWarning("Auth endpoint returned an empty token payload.");
+                return null;
+            }
+
+            _cachedToken = payload.Token;
+            _tokenExpiryUtc = payload.ExpiresUtc;
+            return _cachedToken;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Auth endpoint call failed.");
             return null;
         }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Auth endpoint returned status code {StatusCode}.", (int)response.StatusCode);
-            return null;
-        }
-
-        var payload = await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: cancellationToken);
-        if (payload is null || string.IsNullOrWhiteSpace(payload.Token))
-        {
-            _logger.LogWarning("Auth endpoint returned an empty token payload.");
-            return null;
-        }
-
-        _cachedToken = payload.Token;
-        _tokenExpiryUtc = payload.ExpiresUtc;
-        return _cachedToken;
     }
 
     private bool HasValidToken() =>
