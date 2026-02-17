@@ -1,0 +1,27 @@
+@using RealEstateMap.Models
+
+<div class="house-list" role="list">
+    @if (Houses.Count == 0)
+    {
+        <div class="empty-list">No properties available.</div>
+    }
+    else
+    {
+        @foreach (var house in Houses)
+        {
+            <button type="button" class="house-list-item" role="listitem" @onclick="() => OnSelect.InvokeAsync(house)">
+                <div class="house-title">@house.Address</div>
+                <div class="house-meta">@house.City, @house.State - PIN: @house.PostalCode</div>
+                <div class="house-coords">Lat: @house.Lat.ToString("0.0000"), Lng: @house.Lng.ToString("0.0000")</div>
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<HouseLocation> Houses { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<HouseLocation> OnSelect { get; set; }
+}

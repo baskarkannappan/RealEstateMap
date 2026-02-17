@@ -1,188 +1,417 @@
-﻿@page "/"
-
-@using RealEstateMap.Services
+@page "/"
+@using System.Text.RegularExpressions
 @using RealEstateMap.Models
+@using RealEstateMap.Services
 @inject IJSRuntime JS
-@inject FakeDataService DataService
+@inject IHouseService HouseService
+@inject ILogger<MapPage> Logger
+@implements IAsyncDisposable
 
-<h3>Real Estate Map</h3>
+<div class="map-page">
+    <div class="top-bar">
+        <h3>India Real Estate Map</h3>
+        <button class="btn btn-outline-primary toggle-btn" @onclick="ToggleMapAsync">
+            @(IsMapVisible ? "Hide Map" : "Show Map")
+        </button>
+    </div>
 
-<div class="search-panel" style="margin-bottom:10px; display:flex; gap:10px; flex-wrap:wrap;">
-    <input placeholder="Postal Code" @bind="PostalCode" />
-    <input placeholder="City" @bind="City" />
-    <input placeholder="State" @bind="State" />
-    <input type="number" min="1" style="width:100px" @bind="RadiusKm" />
-    <button @onclick="Search">Search</button>
+    <div class="search-panel responsive-grid">
+        <input class="form-control" placeholder="PIN Code (6 digits)" @bind="PostalCode" />
+        <input class="form-control" placeholder="City" @bind="City" />
+        <input class="form-control" placeholder="State" @bind="State" />
+        <input class="form-control" type="number" min="1" max="250" @bind="RadiusKm" />
+        <button class="btn btn-primary search-btn" @onclick="SearchAsync">Search</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(StatusMessage))
+    {
+        <div class="alert alert-secondary">@StatusMessage</div>
+    }
+
+    @if (IsMapVisible)
+    {
+        <div id="map" class="map-container"></div>
+    }
+    else
+    {
+        <HouseListView Houses="ListViewData" OnSelect="OnHouseSelectedAsync" />
+    }
 </div>
 
-<div id="map" style="height:600px; width:100%;"></div>
-
 @code {
-    private DotNetObjectReference<MapPage>? objRef;
+    private const int MarkerLimit = 200;
+    private static readonly Regex PinRegex = new("^\\d{6}$", RegexOptions.Compiled);
+
+    private DotNetObjectReference<MapPage>? _dotNetRef;
+    private CancellationTokenSource? _debounceCts;
+    private readonly SemaphoreSlim _moveSemaphore = new(1, 1);
+    private readonly Dictionary<string, List<HouseLocation>> _boundsCache = new();
+    private readonly Queue<string> _cacheOrder = new();
+    private readonly Dictionary<string, string> _cityColors = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<HouseLocation>> _listCache = new();
+
+    private int _moveVersion;
+    private string? _lastVisualBucket;
+    private bool _mapInitialized;
+    private bool _pendingMapInit = true;
+
+    private bool IsMapVisible = true;
+    private double _savedLat = 20.5937;
+    private double _savedLng = 78.9629;
+    private int _savedZoom = 5;
 
     private string? PostalCode;
     private string? City;
     private string? State;
-    private double RadiusKm = 5;
+    private double RadiusKm = 10;
+    private string? StatusMessage;
+    private List<HouseLocation> ListViewData = [];
 
-    // Cache for map data to avoid recalculating on every zoom/pan
-    private List<HouseLocation> MapDataCache = new();
-    private double LastSouth, LastWest, LastNorth, LastEast;
-    private int LastZoom = 0;
-
-    // Predefined colors for cities
-    private Dictionary<string, string> CityColors = new();
-    private Random rnd = new();
-
-    // -------------------------------------------------
-    // Initialize Map
-    // -------------------------------------------------
-    protected override async Task OnAfterRenderAsync(bool first)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (first)
+        if (IsMapVisible && (_pendingMapInit || firstRender) && !_mapInitialized)
         {
-            objRef = DotNetObjectReference.Create(this);
-
-            await JS.InvokeVoidAsync(
-                "leafletInterop.initMap",
-                "map",
-                20.5937, // center lat
-                78.9629, // center lng
-                5,       // zoom
-                objRef);
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("leafletInterop.initMap", "map", _savedLat, _savedLng, _savedZoom, _dotNetRef);
+            _pendingMapInit = false;
+            _mapInitialized = true;
         }
     }
 
-    // -------------------------------------------------
-    // Called from JS when map moves
-    // -------------------------------------------------
-    [JSInvokable]
-    public async Task MapMoved(double south, double west, double north, double east, int zoom)
+    [JSInvokable(nameof(MapMoved))]
+    public Task MapMoved(double south, double west, double north, double east, int zoom)
     {
-        // Only reload if bounds or zoom changed significantly
-        if (south == LastSouth && west == LastWest && north == LastNorth && east == LastEast && zoom == LastZoom)
+        if (!IsMapVisible)
+        {
+            return Task.CompletedTask;
+        }
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+
+        var version = Interlocked.Increment(ref _moveVersion);
+        return ProcessMoveDebouncedAsync(south, west, north, east, zoom, version, _debounceCts.Token);
+    }
+
+    private async Task ProcessMoveDebouncedAsync(
+        double south,
+        double west,
+        double north,
+        double east,
+        int zoom,
+        int version,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(300, cancellationToken);
+            if (!IsMapVisible)
+            {
+                return;
+            }
+
+            var bucket = BuildVisualBucket(south, west, north, east, zoom);
+            if (_lastVisualBucket == bucket)
+            {
+                return;
+            }
+
+            await _moveSemaphore.WaitAsync(cancellationToken);
+            try
+            {
+                if (version != _moveVersion || !IsMapVisible)
+                {
+                    return;
+                }
+
+                _lastVisualBucket = bucket;
+                StatusMessage = null;
+
+                var expanded = ExpandBounds(south, west, north, east, 0.35);
+                var cacheKey = BuildCacheKey(expanded.South, expanded.West, expanded.North, expanded.East);
+
+                if (!_boundsCache.TryGetValue(cacheKey, out var candidates))
+                {
+                    Logger.LogInformation("Fetching bounds from API: {South},{West},{North},{East}", expanded.South, expanded.West, expanded.North, expanded.East);
+                    candidates = await HouseService.GetBoundsAsync(expanded.South, expanded.West, expanded.North, expanded.East, cancellationToken);
+                    AddCacheEntry(cacheKey, candidates);
+                }
+
+                var visible = candidates
+                    .Where(h => h.Lat >= south && h.Lat <= north && h.Lng >= west && h.Lng <= east)
+                    .Take(MarkerLimit)
+                    .ToList();
+
+                ListViewData = visible;
+                await RenderMarkersAsync(visible, zoom);
+                await InvokeAsync(StateHasChanged);
+            }
+            finally
+            {
+                _moveSemaphore.Release();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "MapMoved pipeline failed.");
+            StatusMessage = "Unable to load map data currently. Please continue navigating.";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        try
+        {
+            var request = BuildSearchRequest();
+            if (request is null)
+            {
+                return;
+            }
+
+            var listCacheKey = $"{request.PostalCode}|{request.City}|{request.State}|{request.RadiusKm}";
+            if (!_listCache.TryGetValue(listCacheKey, out var listResults))
+            {
+                listResults = await HouseService.GetListAsync(request);
+                _listCache[listCacheKey] = listResults;
+            }
+
+            ListViewData = listResults.Take(MarkerLimit).ToList();
+
+            if (!IsMapVisible)
+            {
+                StatusMessage = $"Loaded {ListViewData.Count} properties in list view.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            Logger.LogInformation("Running map search. PIN:{Pin}, City:{City}, State:{State}, RadiusKm:{Radius}", request.PostalCode, request.City, request.State, request.RadiusKm);
+            var mapResults = await HouseService.SearchAsync(request);
+
+            if (mapResults.Count == 0)
+            {
+                StatusMessage = "No properties matched your filters.";
+                await JS.InvokeVoidAsync("leafletInterop.clearLayers");
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var center = mapResults[0];
+            _savedLat = center.Lat;
+            _savedLng = center.Lng;
+            _savedZoom = 12;
+
+            var limited = mapResults.Take(MarkerLimit).ToList();
+            await JS.InvokeVoidAsync("leafletInterop.showSearchResult", center.Lat, center.Lng, 12, request.RadiusKm);
+            await RenderMarkersAsync(limited, 12);
+
+            StatusMessage = $"Loaded {limited.Count} properties.";
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Search pipeline failed.");
+            StatusMessage = "Search is temporarily unavailable.";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ToggleMapAsync()
+    {
+        try
+        {
+            if (IsMapVisible)
+            {
+                try
+                {
+                    var view = await JS.InvokeAsync<MapViewState?>("leafletInterop.getCurrentView");
+                    if (view is not null)
+                    {
+                        _savedLat = view.Lat;
+                        _savedLng = view.Lng;
+                        _savedZoom = view.Zoom;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogDebug(ex, "Unable to read current map view before hide.");
+                }
+
+                await JS.InvokeVoidAsync("leafletInterop.disposeMap");
+                _mapInitialized = false;
+                IsMapVisible = false;
+
+                var request = BuildSearchRequest();
+                if (request is not null)
+                {
+                    ListViewData = await HouseService.GetListAsync(request);
+                }
+            }
+            else
+            {
+                IsMapVisible = true;
+                _pendingMapInit = true;
+                _mapInitialized = false;
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed toggling map/list view.");
+        }
+    }
+
+    private async Task OnHouseSelectedAsync(HouseLocation house)
+    {
+        StatusMessage = $"Selected: {house.Address} ({house.City})";
+
+        if (!IsMapVisible)
+        {
             return;
-
-        LastSouth = south;
-        LastWest = west;
-        LastNorth = north;
-        LastEast = east;
-        LastZoom = zoom;
-
-        await LoadMapData(south, west, north, east, zoom);
-    }
-
-    // -------------------------------------------------
-    // Load markers for current map bounds
-    // -------------------------------------------------
-    private async Task LoadMapData(double south, double west, double north, double east, int zoom)
-    {
-        await JS.InvokeVoidAsync("leafletInterop.clearLayers");
-
-        // Use cached data if available
-        if (!MapDataCache.Any())
-        {
-            MapDataCache = DataService.GetByBounds(south - 5, west - 5, north + 5, east + 5); // load extra area for smoother panning
         }
 
-        var visibleData = MapDataCache
-            .Where(h => h.Lat >= south && h.Lat <= north && h.Lng >= west && h.Lng <= east)
-            .ToList();
+        _savedLat = house.Lat;
+        _savedLng = house.Lng;
+        _savedZoom = Math.Max(_savedZoom, 12);
+        await JS.InvokeVoidAsync("leafletInterop.showSearchResult", _savedLat, _savedLng, _savedZoom, RadiusKm);
+    }
+
+    private MapSearchRequest? BuildSearchRequest()
+    {
+        var pin = string.IsNullOrWhiteSpace(PostalCode) ? null : PostalCode.Trim();
+        if (!string.IsNullOrWhiteSpace(pin) && !PinRegex.IsMatch(pin))
+        {
+            StatusMessage = "Please enter a valid 6-digit Indian PIN code.";
+            return null;
+        }
+
+        return new MapSearchRequest
+        {
+            PostalCode = pin,
+            City = string.IsNullOrWhiteSpace(City) ? null : City.Trim(),
+            State = string.IsNullOrWhiteSpace(State) ? null : State.Trim(),
+            RadiusKm = Math.Clamp(RadiusKm, 1, 250)
+        };
+    }
+
+    private async Task RenderMarkersAsync(List<HouseLocation> houses, int zoom)
+    {
+        if (!IsMapVisible)
+        {
+            return;
+        }
+
+        await JS.InvokeVoidAsync("leafletInterop.clearLayers");
 
         if (zoom < 10)
         {
-            // Clustered view for low zooms
-            var grouped = visibleData.GroupBy(x => (Math.Round(x.Lat, 1), Math.Round(x.Lng, 1)));
+            var grouped = houses
+                .GroupBy(h => (Math.Round(h.Lat, 1), Math.Round(h.Lng, 1)))
+                .Select(group => new { Lat = group.Key.Item1, Lng = group.Key.Item2, Count = group.Count() });
 
-            foreach (var g in grouped)
+            foreach (var cluster in grouped)
             {
-                await JS.InvokeVoidAsync(
-                    "leafletInterop.addClusterCount",
-                    g.Key.Item1,
-                    g.Key.Item2,
-                    g.Count());
+                await JS.InvokeVoidAsync("leafletInterop.addClusterCount", cluster.Lat, cluster.Lng, cluster.Count);
             }
-        }
-        else
-        {
-            // Show individual markers
-            foreach (var house in visibleData.Take(200))
-            {
-                var color = GetCityColor(house.City);
 
-                await JS.InvokeVoidAsync(
-                    "leafletInterop.addMarker",
-                    house.Lat,
-                    house.Lng,
-                    $"{house.Address} - {house.City}",
-                    color
-                );
-            }
-        }
-    }
-
-    // -------------------------------------------------
-    // SEARCH BUTTON
-    // -------------------------------------------------
-    private async Task Search()
-    {
-        var results = DataService.Search(PostalCode, City, State, RadiusKm);
-
-        if (!results.Any())
             return;
+        }
 
-        var center = results.First();
-
-        // Clear markers but keep radius circle
-        await JS.InvokeVoidAsync("leafletInterop.clearLayers");
-
-        // Move Map + Draw Radius
-        await JS.InvokeVoidAsync(
-            "leafletInterop.showSearchResult",
-            center.Lat,
-            center.Lng,
-            12,
-            RadiusKm
-        );
-
-        // Add markers for search results
-        foreach (var house in results.Take(200))
+        foreach (var house in houses)
         {
             var color = GetCityColor(house.City);
             await JS.InvokeVoidAsync(
                 "leafletInterop.addMarker",
                 house.Lat,
                 house.Lng,
-                $"{house.Address} - {house.City}",
-                color
-            );
+                $"{house.Address} - {house.City}, {house.State} ({house.PostalCode})",
+                color);
         }
     }
 
-    // -------------------------------------------------
-    // Assign a color to a city
-    // -------------------------------------------------
     private string GetCityColor(string city)
     {
-        if (string.IsNullOrWhiteSpace(city)) return "#0078ff";
-
-        if (!CityColors.ContainsKey(city))
+        if (string.IsNullOrWhiteSpace(city))
         {
-            // Generate a random pastel color
-            var r = 100 + rnd.Next(0, 156);
-            var g = 100 + rnd.Next(0, 156);
-            var b = 100 + rnd.Next(0, 156);
-            CityColors[city] = $"rgb({r},{g},{b})";
+            return "#1f77b4";
         }
 
-        return CityColors[city];
+        if (_cityColors.TryGetValue(city, out var color))
+        {
+            return color;
+        }
+
+        var hue = Math.Abs(city.GetHashCode()) % 360;
+        color = $"hsl({hue}, 70%, 45%)";
+        _cityColors[city] = color;
+        return color;
     }
 
-    // -------------------------------------------------
-    // Cleanup
-    // -------------------------------------------------
-    public void Dispose()
+    private void AddCacheEntry(string key, List<HouseLocation> data)
     {
-        objRef?.Dispose();
+        if (_boundsCache.ContainsKey(key))
+        {
+            return;
+        }
+
+        _boundsCache[key] = data;
+        _cacheOrder.Enqueue(key);
+
+        while (_cacheOrder.Count > 12)
+        {
+            var oldKey = _cacheOrder.Dequeue();
+            _boundsCache.Remove(oldKey);
+        }
+    }
+
+    private static (double South, double West, double North, double East) ExpandBounds(
+        double south,
+        double west,
+        double north,
+        double east,
+        double factor)
+    {
+        var latPad = (north - south) * factor;
+        var lngPad = (east - west) * factor;
+        return (south - latPad, west - lngPad, north + latPad, east + lngPad);
+    }
+
+    private static string BuildCacheKey(double south, double west, double north, double east) =>
+        $"{Math.Round(south, 2)}:{Math.Round(west, 2)}:{Math.Round(north, 2)}:{Math.Round(east, 2)}";
+
+    private static string BuildVisualBucket(double south, double west, double north, double east, int zoom) =>
+        $"{Math.Round((south + north) / 2, 2)}:{Math.Round((west + east) / 2, 2)}:{Math.Round(north - south, 2)}:{zoom}";
+
+    public async ValueTask DisposeAsync()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _moveSemaphore.Dispose();
+
+        if (_dotNetRef is not null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("leafletInterop.disposeMap");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Error while disposing map interop.");
+            }
+
+            _dotNetRef.Dispose();
+        }
+    }
+
+    private sealed class MapViewState
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+        public int Zoom { get; set; }
     }
 }
