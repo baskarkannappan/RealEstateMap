@@ -1,9 +1,10 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateMap", "RealEstateMap.csproj", "{290671A3-73CE-DAC0-503E-B3D93394059B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateMap.Api", "Api\RealEstateMap.Api.csproj", "{8E1F95B8-3A9B-4F4A-9F0E-0B7543439E15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +16,10 @@ Global
 		{290671A3-73CE-DAC0-503E-B3D93394059B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{290671A3-73CE-DAC0-503E-B3D93394059B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{290671A3-73CE-DAC0-503E-B3D93394059B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E1F95B8-3A9B-4F4A-9F0E-0B7543439E15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E1F95B8-3A9B-4F4A-9F0E-0B7543439E15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E1F95B8-3A9B-4F4A-9F0E-0B7543439E15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E1F95B8-3A9B-4F4A-9F0E-0B7543439E15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
