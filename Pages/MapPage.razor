@@ -7,7 +7,7 @@
 @inject ILogger<MapPage> Logger
 @implements IAsyncDisposable
 
-<div class="map-page">
+<div class="map-page zolo-style">
     <div class="top-bar">
         <h3>India Real Estate Map</h3>
         <button class="btn btn-outline-primary toggle-btn" @onclick="ToggleMapAsync">
@@ -28,14 +28,18 @@
         <div class="alert alert-secondary">@StatusMessage</div>
     }
 
-    @if (IsMapVisible)
-    {
-        <div id="map" class="map-container"></div>
-    }
-    else
-    {
-        <HouseListView Houses="ListViewData" OnSelect="OnHouseSelectedAsync" />
-    }
+    <div class="results-shell @(IsMapVisible ? "map-visible" : "map-hidden")">
+        @if (IsMapVisible)
+        {
+            <div class="map-pane">
+                <div id="map" class="map-container"></div>
+            </div>
+        }
+
+        <div class="list-pane">
+            <HouseListView Houses="ListViewData" CenterLat="_activeCenterLat" CenterLng="_activeCenterLng" OnSelect="OnHouseSelectedAsync" />
+        </div>
+    </div>
 </div>
 
 @code {
@@ -112,6 +116,8 @@
     private double _savedLat = 20.5937;
     private double _savedLng = 78.9629;
     private int _savedZoom = 5;
+    private double? _activeCenterLat = 20.5937;
+    private double? _activeCenterLng = 78.9629;
 
     private string? PostalCode;
     private string? City;
@@ -207,6 +213,9 @@
                     .Take(MarkerLimit)
                     .ToList();
 
+                _activeCenterLat = (south + north) / 2;
+                _activeCenterLng = (west + east) / 2;
+
                 ListViewData = visible;
                 await RenderMarkersAsync(visible, zoom);
                 await InvokeAsync(StateHasChanged);
@@ -238,6 +247,8 @@
             }
 
             _isExplicitSearchInProgress = true;
+            _activeCenterLat = request.CenterLat;
+            _activeCenterLng = request.CenterLng;
             _skipNextMapMovedEvent = true;
             _lastVisualBucket = null;
             _boundsCache.Clear();
@@ -355,6 +366,8 @@
 
         _savedLat = house.Lat;
         _savedLng = house.Lng;
+        _activeCenterLat = house.Lat;
+        _activeCenterLng = house.Lng;
         _savedZoom = Math.Max(_savedZoom, 12);
         await JS.InvokeVoidAsync("leafletInterop.showSearchResult", _savedLat, _savedLng, _savedZoom, RadiusKm);
     }

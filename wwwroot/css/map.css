@@ -1,20 +1,23 @@
 .cluster-pin {
     width: 40px;
     height: 40px;
-    background-color: #0078ff;
+    background-color: #4caf50;
     color: white;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    border: 2px solid white;
+    border: 2px solid #fff;
 }
 
-.map-page {
+.map-page.zolo-style {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    background: #f6f7f8;
+    padding: 0.5rem;
+    border-radius: 10px;
 }
 
 .top-bar {
@@ -22,75 +25,143 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+    background: #fff;
+    padding: 0.6rem;
+    border-radius: 10px;
     position: sticky;
     top: 0;
     z-index: 20;
-    background: #fff;
-    padding: 0.4rem 0;
+}
+
+.top-bar h3 {
+    margin: 0;
+    font-size: 1.15rem;
 }
 
 .toggle-btn,
 .search-btn {
     min-height: 44px;
-    padding: 0.5rem 0.9rem;
+    padding: 0.5rem 1rem;
 }
 
 .responsive-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.5rem;
+    background: #fff;
+    padding: 0.6rem;
+    border-radius: 10px;
+}
+
+.results-shell {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.results-shell.map-visible {
+    grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 1fr);
+}
+
+.results-shell.map-hidden {
+    grid-template-columns: 1fr;
+}
+
+.map-pane,
+.list-pane {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .map-container {
-    height: 65vh;
-    min-height: 420px;
+    height: 72vh;
+    min-height: 460px;
     width: 100%;
 }
 
-.house-list {
+.list-pane {
+    padding: 0.6rem;
+}
+
+.house-list-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    max-height: 72vh;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.house-card {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    max-height: 70vh;
-    overflow-y: auto;
-    padding-right: 0.25rem;
-}
-
-.house-list-item {
+    gap: 0.35rem;
     text-align: left;
+    border: 1px solid #e2e5e9;
+    border-radius: 10px;
+    padding: 0.7rem;
     background: #fff;
-    border: 1px solid #d8d8d8;
-    border-radius: 8px;
-    padding: 0.75rem;
 }
 
-.house-title {
-    font-weight: 600;
+.house-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.house-meta,
-.house-coords {
-    font-size: 0.9rem;
-    color: #505050;
+.house-address {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.house-pill {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.house-location,
+.house-distance {
+    font-size: 0.85rem;
+    color: #4f5965;
 }
 
 .empty-list {
     color: #666;
-    padding: 0.5rem;
+    padding: 0.6rem;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1200px) {
+    .results-shell.map-visible {
+        grid-template-columns: 1fr;
+    }
+
+    .map-container,
+    .house-list-grid {
+        max-height: none;
+    }
+
+    .map-container {
+        height: 58vh;
+        min-height: 360px;
+    }
+}
+
+@media (max-width: 768px) {
     .responsive-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr 1fr;
     }
 
     .search-btn {
         grid-column: span 2;
     }
 
-    .map-container {
-        height: 60vh;
-        min-height: 360px;
+    .house-list-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -98,11 +169,6 @@
     .top-bar {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .top-bar h3 {
-        margin: 0;
-        font-size: 1.1rem;
     }
 
     .responsive-grid {
@@ -114,7 +180,7 @@
     }
 
     .map-container {
-        height: 55vh;
-        min-height: 320px;
+        height: 50vh;
+        min-height: 300px;
     }
 }
