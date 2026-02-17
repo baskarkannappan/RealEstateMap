@@ -184,3 +184,16 @@
         min-height: 300px;
     }
 }
+
+
+.status-card {
+    padding: 0.55rem 0.7rem;
+}
+
+.search-field {
+    width: 100%;
+}
+
+.house-card fluent-button {
+    margin-top: 0.4rem;
+}
