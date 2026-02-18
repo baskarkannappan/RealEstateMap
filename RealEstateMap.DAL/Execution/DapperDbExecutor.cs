@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RealEstateMap.DAL.Configuration;
 using RealEstateMap.DAL.Connection;
+using Microsoft.Data.SqlClient;
 
 namespace RealEstateMap.DAL.Execution;
 
