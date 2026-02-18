@@ -11,4 +11,14 @@ public sealed class MapSearchRequest
     public double? CenterLng { get; init; }
 
     public double RadiusKm { get; init; } = 10;
+
+    // Optional bounds payload support.
+    public double? South { get; init; }
+    public double? West { get; init; }
+    public double? North { get; init; }
+    public double? East { get; init; }
+
+    // Pagination controls.
+    public int PageNumber { get; init; } = 1;
+    public int PageSize { get; init; } = 250;
 }

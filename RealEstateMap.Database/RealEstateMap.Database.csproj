@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Tables/**/*.sql" />
+    <None Include="StoredProcedures/**/*.sql" />
+    <None Include="Views/**/*.sql" />
+    <None Include="SeedData/**/*.sql" />
+  </ItemGroup>
+</Project>

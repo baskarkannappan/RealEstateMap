@@ -2,14 +2,25 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using RealEstateMap.Api.Options;
 using RealEstateMap.Api.Services;
+using RealEstateMap.Api.Services.Abstractions;
+using RealEstateMap.Api.Services.Database;
+using RealEstateMap.DAL;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
+builder.Services.Configure<DataSourceOptions>(builder.Configuration.GetSection(DataSourceOptions.SectionName));
+
 builder.Services.AddSingleton<FakeDataService>();
+builder.Services.AddScoped<FakeHouseDataService>();
+builder.Services.AddRealEstateDal(builder.Configuration);
+builder.Services.AddScoped<IHouseDbService, HouseDbService>();
+builder.Services.AddScoped<IHouseDataService, SwitchableHouseDataService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var signingKey = jwtSection["SigningKey"] ?? throw new InvalidOperationException("Missing Jwt:SigningKey configuration.");

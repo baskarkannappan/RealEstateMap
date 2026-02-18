@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateMap.Api.Models;
-using RealEstateMap.Api.Services;
+using RealEstateMap.Api.Services.Abstractions;
 
 namespace RealEstateMap.Api.Controllers;
 
@@ -10,25 +10,24 @@ namespace RealEstateMap.Api.Controllers;
 [Authorize]
 public sealed class HouseController : ControllerBase
 {
-    private readonly FakeDataService _fakeDataService;
+    private readonly IHouseDataService _houseDataService;
 
-    public HouseController(FakeDataService fakeDataService)
+    public HouseController(IHouseDataService houseDataService)
     {
-        _fakeDataService = fakeDataService;
+        _houseDataService = houseDataService;
     }
-
 
     [HttpPost("list")]
     public async Task<ActionResult<List<HouseLocation>>> List([FromBody] MapSearchRequest request, CancellationToken cancellationToken)
     {
-        var results = await _fakeDataService.SearchAsync(request, cancellationToken);
+        var results = await _houseDataService.GetListAsync(request, cancellationToken);
         return Ok(results);
     }
 
     [HttpPost("search")]
     public async Task<ActionResult<List<HouseLocation>>> Search([FromBody] MapSearchRequest request, CancellationToken cancellationToken)
     {
-        var results = await _fakeDataService.SearchAsync(request, cancellationToken);
+        var results = await _houseDataService.SearchAsync(request, cancellationToken);
         return Ok(results);
     }
 
@@ -40,7 +39,7 @@ public sealed class HouseController : ControllerBase
         [FromQuery] double east,
         CancellationToken cancellationToken)
     {
-        var results = await _fakeDataService.GetByBoundsAsync(south, west, north, east, cancellationToken);
+        var results = await _houseDataService.GetByBoundsAsync(south, west, north, east, cancellationToken);
         return Ok(results);
     }
 }

@@ -8,4 +8,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RealEstateMap.DAL\RealEstateMap.DAL.csproj" />
+    <ProjectReference Include="..\RealEstateMap.Shared.Models\RealEstateMap.Shared.Models.csproj" />
+  </ItemGroup>
 </Project>
