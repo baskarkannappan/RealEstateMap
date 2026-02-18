@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using RealEstateMap;
 using RealEstateMap.Models;
 using RealEstateMap.Services;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -12,7 +11,6 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.Configure<ApiOptions>(builder.Configuration.GetSection("Api"));
-builder.Services.AddFluentUIComponents();
 
 builder.Services.AddHttpClient("ApiClient", (sp, client) =>
 {

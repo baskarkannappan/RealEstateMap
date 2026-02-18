@@ -3,13 +3,13 @@
 <div class="house-list-grid" role="list">
     @if (Houses.Count == 0)
     {
-        <FluentCard Class="status-card">No properties available.</FluentCard>
+        <div class="alert alert-light status-card mb-0">No properties available.</div>
     }
     else
     {
         @foreach (var house in Houses)
         {
-            <FluentCard Class="house-card" role="listitem">
+            <article class="house-card" role="listitem">
                 <div class="house-card-top">
                     <div class="house-address">@house.Address</div>
                     <span class="house-pill">@house.City</span>
@@ -19,8 +19,8 @@
                 {
                     <div class="house-distance">~@DistanceKm(CenterLat.Value, CenterLng.Value, house.Lat, house.Lng).ToString("0.0") km away</div>
                 }
-                <FluentButton Appearance="Appearance.Stealth" @onclick="() => OnSelect.InvokeAsync(house)">View</FluentButton>
-            </FluentCard>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2 align-self-start" @onclick="() => OnSelect.InvokeAsync(house)">View</button>
+            </article>
         }
     }
 </div>

@@ -10,22 +10,22 @@
 <div class="map-page zolo-style">
     <div class="top-bar">
         <h3>India Real Estate Map</h3>
-        <FluentButton Appearance="Appearance.Neutral" Class="toggle-btn" @onclick="ToggleMapAsync">
+        <button type="button" class="btn btn-outline-primary toggle-btn" @onclick="ToggleMapAsync">
             @(IsMapVisible ? "Hide Map" : "Show Map")
-        </FluentButton>
+        </button>
     </div>
 
     <div class="search-panel responsive-grid">
-        <FluentTextField Placeholder="PIN Code (6 digits)" @bind-Value="PostalCode" Class="search-field" />
-        <FluentTextField Placeholder="City" @bind-Value="City" Class="search-field" />
-        <FluentTextField Placeholder="State" @bind-Value="State" Class="search-field" />
-        <FluentNumberField TValue="double" @bind-Value="RadiusKm" Min="1" Max="250" Step="1" Class="search-field" />
-        <FluentButton Appearance="Appearance.Accent" Class="search-btn" @onclick="SearchAsync">Search</FluentButton>
+        <input class="form-control search-field" placeholder="PIN Code (6 digits)" @bind="PostalCode" />
+        <input class="form-control search-field" placeholder="City" @bind="City" />
+        <input class="form-control search-field" placeholder="State" @bind="State" />
+        <input class="form-control search-field" type="number" min="1" max="250" step="1" @bind="RadiusKm" />
+        <button type="button" class="btn btn-primary search-btn" @onclick="SearchAsync">Search</button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(StatusMessage))
     {
-        <FluentCard Class="status-card">@StatusMessage</FluentCard>
+        <div class="alert alert-light status-card" role="status">@StatusMessage</div>
     }
 
     <div class="results-shell @(IsMapVisible ? "map-visible" : "map-hidden")">
