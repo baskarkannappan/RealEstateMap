@@ -33,7 +33,7 @@ public interface IDbExecutor
         int? commandTimeout = null,
         CancellationToken cancellationToken = default);
 
-    Task<GridReader> QueryMultipleAsync(
+    Task<SqlMapper.GridReader> QueryMultipleAsync(
         string sql,
         object? parameters = null,
         CommandType? commandType = null,

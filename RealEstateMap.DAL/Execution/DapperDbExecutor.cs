@@ -25,33 +25,33 @@ public sealed class DapperDbExecutor : IDbExecutor
 
     public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? parameters = null, CommandType? commandType = null, int? commandTimeout = null, CancellationToken cancellationToken = default)
     {
-        await using var connection = await OpenConnectionAsync(cancellationToken);
+        using var connection = await OpenConnectionAsync(cancellationToken);
         var command = CreateCommand(sql, parameters, null, commandType, commandTimeout, cancellationToken);
         return await connection.QueryAsync<T>(command);
     }
 
     public async Task<T?> QuerySingleAsync<T>(string sql, object? parameters = null, CommandType? commandType = null, int? commandTimeout = null, CancellationToken cancellationToken = default)
     {
-        await using var connection = await OpenConnectionAsync(cancellationToken);
+        using var connection = await OpenConnectionAsync(cancellationToken);
         var command = CreateCommand(sql, parameters, null, commandType, commandTimeout, cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<T>(command);
     }
 
     public async Task<int> ExecuteAsync(string sql, object? parameters = null, CommandType? commandType = null, int? commandTimeout = null, CancellationToken cancellationToken = default)
     {
-        await using var connection = await OpenConnectionAsync(cancellationToken);
+        using var connection = await OpenConnectionAsync(cancellationToken);
         var command = CreateCommand(sql, parameters, null, commandType, commandTimeout, cancellationToken);
         return await connection.ExecuteAsync(command);
     }
 
     public async Task<T?> ExecuteScalarAsync<T>(string sql, object? parameters = null, CommandType? commandType = null, int? commandTimeout = null, CancellationToken cancellationToken = default)
     {
-        await using var connection = await OpenConnectionAsync(cancellationToken);
+        using var connection = await OpenConnectionAsync(cancellationToken);
         var command = CreateCommand(sql, parameters, null, commandType, commandTimeout, cancellationToken);
         return await connection.ExecuteScalarAsync<T>(command);
     }
 
-    public async Task<GridReader> QueryMultipleAsync(string sql, object? parameters = null, CommandType? commandType = null, int? commandTimeout = null, CancellationToken cancellationToken = default)
+    public async Task<SqlMapper.GridReader> QueryMultipleAsync(string sql, object? parameters = null, CommandType? commandType = null, int? commandTimeout = null, CancellationToken cancellationToken = default)
     {
         var connection = await OpenConnectionAsync(cancellationToken);
         var command = CreateCommand(sql, parameters, null, commandType, commandTimeout, cancellationToken);
@@ -60,8 +60,8 @@ public sealed class DapperDbExecutor : IDbExecutor
 
     public async Task ExecuteTransactionAsync(Func<IDbConnection, IDbTransaction, CancellationToken, Task> action, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
     {
-        await using var connection = await OpenConnectionAsync(cancellationToken);
-        await using var transaction = connection.BeginTransaction(isolationLevel);
+        using var connection = await OpenConnectionAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction(isolationLevel);
         try
         {
             await action(connection, transaction, cancellationToken);
