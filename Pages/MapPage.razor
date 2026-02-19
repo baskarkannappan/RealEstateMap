@@ -7,39 +7,93 @@
 @inject ILogger<MapPage> Logger
 @implements IAsyncDisposable
 
-<div class="map-page zolo-style">
-    <div class="top-bar">
-        <h3>India Real Estate Map</h3>
-        <button type="button" class="btn btn-outline-primary toggle-btn" @onclick="ToggleMapAsync">
-            @(IsMapVisible ? "Hide Map" : "Show Map")
-        </button>
-    </div>
+<div class="map-page bootstrap-search-ui">
+    <div class="container-fluid px-0">
+        <header class="sticky-top filter-header">
+            <div class="d-flex flex-wrap align-items-center gap-2 py-2 px-2 px-md-3">
+                <button type="button" class="btn btn-dark btn-sm filter-chip">For Sale</button>
 
-    <div class="search-panel responsive-grid">
-        <input class="form-control search-field" placeholder="PIN Code (6 digits)" @bind="PostalCode" />
-        <input class="form-control search-field" placeholder="City" @bind="City" />
-        <input class="form-control search-field" placeholder="State" @bind="State" />
-        <input class="form-control search-field" type="number" min="1" max="250" step="1" @bind="RadiusKm" />
-        <button type="button" class="btn btn-primary search-btn" @onclick="SearchAsync">Search</button>
-    </div>
+                <select class="form-select form-select-sm filter-select" @bind="PriceFilter">
+                    <option>Price</option>
+                    <option>200k-1.5M+</option>
+                    <option>300k-2M+</option>
+                    <option>500k-3M+</option>
+                </select>
 
-    @if (!string.IsNullOrWhiteSpace(StatusMessage))
-    {
-        <div class="alert alert-light status-card" role="status">@StatusMessage</div>
-    }
+                <select class="form-select form-select-sm filter-select" @bind="BedsFilter">
+                    <option>Beds</option>
+                    <option>0+-5+</option>
+                    <option>1+-6+</option>
+                    <option>2+-7+</option>
+                </select>
 
-    <div class="results-shell @(IsMapVisible ? "map-visible" : "map-hidden")">
-        @if (IsMapVisible)
-        {
-            <div class="map-pane">
-                <div id="map" class="map-container"></div>
+                <select class="form-select form-select-sm filter-select" @bind="HomeTypeFilter">
+                    <option>Home Type</option>
+                    <option>House</option>
+                    <option>Condo</option>
+                    <option>Townhouse</option>
+                </select>
+
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="OpenVerificationModal">
+                    Save Search
+                </button>
+
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary ms-md-auto"
+                        @onclick="ToggleMapAsync"
+                        aria-pressed="@IsMapVisible"
+                        aria-label="@(IsMapVisible ? "Hide map panel" : "Show map panel")">
+                    @(IsMapVisible ? "Hide Map" : "Show Map")
+                </button>
             </div>
+        </header>
+
+        @if (!string.IsNullOrWhiteSpace(StatusMessage))
+        {
+            <div class="alert alert-light status-card m-2 mb-0" role="status">@StatusMessage</div>
         }
 
-        <div class="list-pane">
-            <HouseListView Houses="ListViewData" CenterLat="_activeCenterLat" CenterLng="_activeCenterLng" OnSelect="OnHouseSelectedAsync" />
+        <div class="row g-0 split-pane @(IsMapVisible ? "map-visible" : "map-hidden")">
+            @if (IsMapVisible)
+            {
+                <section class="col-12 col-md-7 map-pane-fixed">
+                    <div id="map" class="map-container"></div>
+                </section>
+            }
+
+            <section class="col-12 @(IsMapVisible ? "col-md-5" : "col-md-12") gallery-pane">
+                <div class="gallery-scroller">
+                    <HouseListView Houses="ListViewData"
+                                   CenterLat="_activeCenterLat"
+                                   CenterLng="_activeCenterLng"
+                                   GeolocationStatus="@GeolocationStatus"
+                                   OnSelect="OnHouseSelectedAsync" />
+                </div>
+            </section>
         </div>
     </div>
+
+    @if (ShowVerificationModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Verification Required</h5>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseVerificationModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">Real Estate boards require a verified email prior to accessing full listing data.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseVerificationModal">Close</button>
+                        <button type="button" class="btn btn-primary" @onclick="CloseVerificationModal">Verify Email</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
 </div>
 
 @code {
@@ -119,10 +173,15 @@
     private double? _activeCenterLat = 20.5937;
     private double? _activeCenterLng = 78.9629;
 
-    private string? PostalCode;
-    private string? City;
-    private string? State;
+    private string PostalCode = string.Empty;
+    private string City = string.Empty;
+    private string State = string.Empty;
     private double RadiusKm = 10;
+    private string PriceFilter = "200k-1.5M+";
+    private string BedsFilter = "0+-5+";
+    private string HomeTypeFilter = "Home Type";
+    private string GeolocationStatus = "Geolocation: Checking...";
+    private bool ShowVerificationModal;
     private string? StatusMessage;
     private List<HouseLocation> ListViewData = [];
 
@@ -134,6 +193,11 @@
             await JS.InvokeVoidAsync("leafletInterop.initMap", "map", _savedLat, _savedLng, _savedZoom, _dotNetRef);
             _pendingMapInit = false;
             _mapInitialized = true;
+        }
+
+        if (firstRender)
+        {
+            await ResolveGeolocationStatusAsync();
         }
     }
 
@@ -333,12 +397,6 @@
                 await JS.InvokeVoidAsync("leafletInterop.disposeMap");
                 _mapInitialized = false;
                 IsMapVisible = false;
-
-                var request = BuildSearchRequest();
-                if (request is not null)
-                {
-                    ListViewData = await HouseService.GetListAsync(request);
-                }
             }
             else
             {
@@ -554,6 +612,24 @@
 
             _dotNetRef.Dispose();
         }
+    }
+
+    private void OpenVerificationModal() => ShowVerificationModal = true;
+
+    private void CloseVerificationModal() => ShowVerificationModal = false;
+
+    private async Task ResolveGeolocationStatusAsync()
+    {
+        try
+        {
+            GeolocationStatus = await JS.InvokeAsync<string>("leafletInterop.getGeolocationStatus");
+        }
+        catch
+        {
+            GeolocationStatus = "Geolocation: Unavailable";
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private sealed class MapViewState

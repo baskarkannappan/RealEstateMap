@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RealEstateMap.Api.Models;
 using RealEstateMap.Api.Services.Abstractions;
+using RealEstateMap.Api.Services.Database;
 
 namespace RealEstateMap.Api.Controllers;
 
@@ -11,10 +12,12 @@ namespace RealEstateMap.Api.Controllers;
 public sealed class HouseController : ControllerBase
 {
     private readonly IHouseDataService _houseDataService;
+    private readonly IHouseDbService _houseDbService;
 
-    public HouseController(IHouseDataService houseDataService)
+    public HouseController(IHouseDataService houseDataService, IHouseDbService houseDbService)
     {
         _houseDataService = houseDataService;
+        _houseDbService = houseDbService;
     }
 
     [HttpPost("list")]
@@ -41,5 +44,12 @@ public sealed class HouseController : ControllerBase
     {
         var results = await _houseDataService.GetByBoundsAsync(south, west, north, east, cancellationToken);
         return Ok(results);
+    }
+
+    [HttpPost("cache/invalidate")]
+    public async Task<IActionResult> InvalidateCache(CancellationToken cancellationToken)
+    {
+        await _houseDbService.InvalidateListingsAsync(cancellationToken);
+        return NoContent();
     }
 }

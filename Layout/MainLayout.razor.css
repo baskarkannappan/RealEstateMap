@@ -40,6 +40,18 @@ main {
     text-overflow: ellipsis;
 }
 
+.menu-toggle-btn {
+    margin-right: auto;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    line-height: 1;
+}
+
+.page.menu-hidden .sidebar {
+    display: none;
+}
+
 @media (max-width: 640.98px) {
     .top-row {
         justify-content: space-between;
@@ -61,6 +73,14 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+        transition: width 0.2s ease, opacity 0.2s ease;
+        overflow: hidden;
+    }
+
+    .page.menu-hidden .sidebar {
+        display: block;
+        width: 0;
+        opacity: 0;
     }
 
     .top-row {
@@ -73,6 +93,10 @@ main {
         flex: 1;
         text-align: right;
         width: 0;
+    }
+
+    .page.menu-hidden main {
+        width: 100%;
     }
 
     .top-row,

@@ -1,11 +1,18 @@
 @inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
+<div class="page @(isMenuHidden ? "menu-hidden" : string.Empty)">
+    <div class="sidebar" aria-hidden="@isMenuHidden">
         <NavMenu />
     </div>
 
     <main>
         <div class="top-row px-4">
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary menu-toggle-btn"
+                    @onclick="ToggleMenu"
+                    aria-label="@(isMenuHidden ? "Show menu" : "Hide menu")"
+                    title="@(isMenuHidden ? "Show menu" : "Hide menu")">
+                <span aria-hidden="true">@(isMenuHidden ? "☰" : "✕")</span>
+            </button>
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
 
@@ -14,3 +21,12 @@
         </article>
     </main>
 </div>
+
+@code {
+    private bool isMenuHidden;
+
+    private void ToggleMenu()
+    {
+        isMenuHidden = !isMenuHidden;
+    }
+}

@@ -3,23 +3,53 @@
 <div class="house-list-grid" role="list">
     @if (Houses.Count == 0)
     {
-        <div class="alert alert-light status-card mb-0">No properties available.</div>
+        <div class="card empty-results-card border-0 shadow-sm" role="status">
+            <div class="card-body">
+                <h5 class="card-title mb-2">No matching results</h5>
+                <p class="text-muted mb-1">Try zooming out</p>
+                <p class="small mb-0"><span class="text-muted">@GeolocationStatus</span></p>
+            </div>
+        </div>
     }
     else
     {
         @foreach (var house in Houses)
         {
-            <article class="house-card" role="listitem">
-                <div class="house-card-top">
-                    <div class="house-address">@house.Address</div>
-                    <span class="house-pill">@house.City</span>
+            var price = BuildPrice(house);
+            var beds = BuildBeds(house);
+            var baths = BuildBaths(house);
+            var sqft = BuildSqft(house);
+            var hasVideo = HasVideo(house);
+
+            <article class="card house-card border-0 shadow-sm" role="listitem">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="house-price fw-bold">@price</div>
+                            <div class="house-address">@house.Address</div>
+                            <div class="house-neighborhood text-muted">@NeighborhoodText(house)</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => OnSelect.InvokeAsync(house)">
+                            View
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <span class="badge rounded-pill text-bg-light">@PostedAgo(house)</span>
+                        @if (hasVideo)
+                        {
+                            <span class="badge rounded-pill text-bg-danger">Video</span>
+                        }
+                    </div>
+
+                    <div class="house-stats mt-2">
+                        <span>@beds bd</span>
+                        <span>@baths ba</span>
+                        <span>@sqft sqft</span>
+                    </div>
+
+                    <p class="text-muted small mb-0 mt-2">@MlsAndBroker(house)</p>
                 </div>
-                <div class="house-location">@house.City, @house.State · PIN @house.PostalCode</div>
-                @if (CenterLat.HasValue && CenterLng.HasValue)
-                {
-                    <div class="house-distance">~@DistanceKm(CenterLat.Value, CenterLng.Value, house.Lat, house.Lng).ToString("0.0") km away</div>
-                }
-                <button type="button" class="btn btn-sm btn-outline-primary mt-2 align-self-start" @onclick="() => OnSelect.InvokeAsync(house)">View</button>
             </article>
         }
     }
@@ -38,17 +68,53 @@
     [Parameter]
     public EventCallback<HouseLocation> OnSelect { get; set; }
 
-    private static double DistanceKm(double lat1, double lng1, double lat2, double lng2)
+    [Parameter]
+    public string GeolocationStatus { get; set; } = "Geolocation: Checking...";
+
+    private static int StableHash(HouseLocation house)
     {
-        const double radius = 6371;
-        var dLat = ToRadians(lat2 - lat1);
-        var dLng = ToRadians(lng2 - lng1);
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
-                Math.Sin(dLng / 2) * Math.Sin(dLng / 2);
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return radius * c;
+        var key = string.IsNullOrWhiteSpace(house.Id)
+            ? $"{house.Address}-{house.PostalCode}-{house.City}"
+            : house.Id;
+
+        return Math.Abs(key.GetHashCode());
     }
 
-    private static double ToRadians(double degrees) => degrees * Math.PI / 180;
+    private static string BuildPrice(HouseLocation house)
+    {
+        var hash = StableHash(house);
+        var value = 200_000 + (hash % 1_300_000);
+        return $"${value:N0}";
+    }
+
+    private static int BuildBeds(HouseLocation house) => (StableHash(house) % 5) + 1;
+
+    private static decimal BuildBaths(HouseLocation house) => Math.Round(((StableHash(house) % 6) + 2) / 2m, 1);
+
+    private static int BuildSqft(HouseLocation house) => 750 + (StableHash(house) % 3_600);
+
+    private static bool HasVideo(HouseLocation house) => StableHash(house) % 2 == 0;
+
+    private static string NeighborhoodText(HouseLocation house)
+    {
+        if (string.IsNullOrWhiteSpace(house.City))
+        {
+            return "Banbury-Don Mills House For Sale";
+        }
+
+        return $"{house.City} House For Sale";
+    }
+
+    private static string PostedAgo(HouseLocation house)
+    {
+        var days = (StableHash(house) % 7) + 1;
+        return $"{days}d ago";
+    }
+
+    private static string MlsAndBroker(HouseLocation house)
+    {
+        var hash = StableHash(house);
+        var mls = $"MLS#{100000 + (hash % 899999)}";
+        return $"{mls} | Brokerage: RealEstateMap Partners";
+    }
 }

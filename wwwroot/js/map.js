@@ -124,6 +124,27 @@ window.leafletInterop = {
         }
     },
 
+    getGeolocationStatus: function () {
+        if (!navigator.geolocation) {
+            return Promise.resolve('Geolocation: Unavailable');
+        }
+
+        return new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                () => resolve('Geolocation: Enabled'),
+                (error) => {
+                    if (error && error.code === 1) {
+                        resolve('Geolocation: Blocked');
+                        return;
+                    }
+
+                    resolve('Geolocation: Unavailable');
+                },
+                { timeout: 4000 }
+            );
+        });
+    },
+
     disposeMap: function () {
         if (this.map && this.moveHandler) {
             this.map.off('moveend', this.moveHandler);
