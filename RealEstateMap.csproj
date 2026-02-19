@@ -14,6 +14,28 @@
     <EmbeddedResource Remove="Api/**" />
     <None Remove="Api/**" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="RealEstateMap.DAL/**" />
+    <Content Remove="RealEstateMap.DAL/**" />
+    <EmbeddedResource Remove="RealEstateMap.DAL/**" />
+    <None Remove="RealEstateMap.DAL/**" />
+    <Compile Remove="RealEstateMap.Database/**" />
+    <Content Remove="RealEstateMap.Database/**" />
+    <EmbeddedResource Remove="RealEstateMap.Database/**" />
+    <None Remove="RealEstateMap.Database/**" />
+    <Compile Remove="RealEstateMap.Shared.Models/**" />
+    <Content Remove="RealEstateMap.Shared.Models/**" />
+    <EmbeddedResource Remove="RealEstateMap.Shared.Models/**" />
+    <None Remove="RealEstateMap.Shared.Models/**" />
+    <Compile Remove="**/obj/**" />
+    <Content Remove="**/obj/**" />
+    <EmbeddedResource Remove="**/obj/**" />
+    <None Remove="**/obj/**" />
+    <Compile Remove="**/bin/**" />
+    <Content Remove="**/bin/**" />
+    <EmbeddedResource Remove="**/bin/**" />
+    <None Remove="**/bin/**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.11" />
