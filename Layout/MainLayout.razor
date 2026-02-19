@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Nav
 <div class="page @(isMenuHidden ? "menu-hidden" : string.Empty)">
     <div class="sidebar" aria-hidden="@isMenuHidden">
         <NavMenu />
@@ -16,7 +17,7 @@
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
 
-        <article class="content px-4">
+        <article class="content px-4 @(IsMapRoute ? "content-flush" : string.Empty)">
             @Body
         </article>
     </main>
@@ -24,6 +25,10 @@
 
 @code {
     private bool isMenuHidden;
+
+    private bool IsMapRoute => string.IsNullOrEmpty(CurrentPath) || CurrentPath.Equals("map", StringComparison.OrdinalIgnoreCase);
+
+    private string CurrentPath => Nav.ToBaseRelativePath(Nav.Uri).TrimEnd('/');
 
     private void ToggleMenu()
     {

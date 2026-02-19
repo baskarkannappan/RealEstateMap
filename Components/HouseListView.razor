@@ -1,3 +1,5 @@
+@using Microsoft.AspNetCore.Components
+@using Markdig
 @using RealEstateMap.Models
 
 <div class="house-list-grid" role="list">
@@ -29,8 +31,8 @@
                             <div class="house-address">@house.Address</div>
                             <div class="house-neighborhood text-muted">@NeighborhoodText(house)</div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => OnSelect.InvokeAsync(house)">
-                            View
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => OpenDetailsAsync(house)">
+                            View details
                         </button>
                     </div>
 
@@ -55,6 +57,34 @@
     }
 </div>
 
+@if (ShowDetailsModal)
+{
+    <div class="modal fade show d-block detail-modal" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Property details</h5>
+                        @if (SelectedHouse is not null)
+                        {
+                            <p class="text-muted small mb-0">@SelectedHouse.Address, @SelectedHouse.City</p>
+                        }
+                    </div>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick="CloseDetailsModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="markdown-content">@((MarkupString)DetailHtml)</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseDetailsModal">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="CloseDetailsModal">Schedule tour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     [Parameter]
     public IReadOnlyList<HouseLocation> Houses { get; set; } = [];
@@ -70,6 +100,69 @@
 
     [Parameter]
     public string GeolocationStatus { get; set; } = "Geolocation: Checking...";
+
+    private bool ShowDetailsModal;
+    private HouseLocation? SelectedHouse;
+
+    private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    private static readonly string DetailMarkdown = @"
+# Listing Summary
+
+**Status:** Active  
+**MLS:** RE-482931  
+**Last Updated:** 2 days ago  
+
+## Highlights
+- Renovated kitchen with quartz counters
+- Walk score 89 | Transit score 76
+- 2-car garage + EV-ready outlet
+
+## Feature Matrix
+| Category | Details |
+| --- | --- |
+| Heating | Forced air + smart thermostat |
+| Cooling | Central air |
+| Roof | Architectural shingles (2019) |
+| Exterior | Brick + cedar siding |
+| HOA | $210 / month |
+
+## Inspection Notes
+1. Foundation: no visible cracking
+2. Roof: 70% life remaining
+3. Windows: double-pane, low-e
+
+## Nearby
+- 6 min to Central Park
+- 0.4 mi to Blue Line
+- Top-rated elementary within 1.2 mi
+
+## Offer Guidance
+> Competitive area. Pre-approval strongly recommended.
+
+```text
+Projected mortgage (20% down)
+Rate: 6.45% | Term: 30yr
+Est. payment: $3,420 / mo
+```
+";
+
+    private static readonly string DetailHtml = Markdown.ToHtml(DetailMarkdown, MarkdownPipeline);
+
+    private async Task OpenDetailsAsync(HouseLocation house)
+    {
+        SelectedHouse = house;
+        ShowDetailsModal = true;
+        await OnSelect.InvokeAsync(house);
+    }
+
+    private void CloseDetailsModal()
+    {
+        ShowDetailsModal = false;
+        SelectedHouse = null;
+    }
 
     private static int StableHash(HouseLocation house)
     {

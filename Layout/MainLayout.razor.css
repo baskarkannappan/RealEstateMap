@@ -9,7 +9,7 @@ main {
 }
 
 .sidebar {
-    background: #0b1f5c;
+    background: #001b3a;
 }
 
 .top-row {
@@ -46,6 +46,10 @@ main {
     height: 2.1rem;
     padding: 0;
     line-height: 1;
+}
+
+.content.content-flush {
+    padding-top: 0;
 }
 
 .page.menu-hidden .sidebar {

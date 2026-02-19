@@ -56,12 +56,12 @@
         <div class="row g-0 split-pane @(IsMapVisible ? "map-visible" : "map-hidden")">
             @if (IsMapVisible)
             {
-                <section class="col-12 col-md-7 map-pane-fixed">
+                <section class="col-12 col-md-4 map-pane-fixed">
                     <div id="map" class="map-container"></div>
                 </section>
             }
 
-            <section class="col-12 @(IsMapVisible ? "col-md-5" : "col-md-12") gallery-pane">
+            <section class="col-12 @(IsMapVisible ? "col-md-8" : "col-md-12") gallery-pane">
                 <div class="gallery-scroller">
                     <HouseListView Houses="ListViewData"
                                    CenterLat="_activeCenterLat"
