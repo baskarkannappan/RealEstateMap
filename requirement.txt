@@ -1,0 +1,337 @@
+You are a senior frontend architect and UX engineer. Your task is to significantly improve the UI/UX of the existing website. You are allowed to refactor, redesign, and restructure the UI components, layout, styles, and interaction patterns as needed to achieve a modern, clean, and highly usable interface.
+
+The goal is to create a top-notch user experience that feels modern, fast, intuitive, and mobile-friendly while keeping the application performant and maintainable.
+
+Core UX Goals
+
+The interface must feel clean, modern, and professional.
+
+Navigation should be simple and intuitive.
+
+The UI must work perfectly on desktop, tablet, and mobile devices.
+
+Improve readability, spacing, alignment, and visual hierarchy.
+
+Reduce visual clutter and unnecessary UI elements.
+
+Improve responsiveness and perceived performance.
+
+Layout Improvements
+
+Redesign the page layout to follow a modern responsive design pattern.
+
+Implement a responsive grid system.
+
+Ensure consistent spacing and margins across sections.
+
+Use a content container layout so the content does not stretch too wide on large screens.
+
+Ensure the UI adapts smoothly across different screen sizes.
+
+Avoid horizontal scrolling.
+
+Navigation and Menu System
+
+Improve the navigation to be modern and mobile friendly.
+
+The menu should have:
+
+A compact width on desktop.
+
+Ability to auto-collapse or auto-hide.
+
+Smooth animation when expanding or collapsing.
+
+Implement a hamburger menu that:
+
+Is clearly visible.
+
+Is always accessible.
+
+Appears in the top navigation bar.
+
+Expands the sidebar when clicked.
+
+On mobile:
+
+The menu should be hidden by default.
+
+The hamburger icon should open a slide-in navigation drawer.
+
+The drawer should close when clicking outside or selecting a menu item.
+
+Improve menu usability:
+
+Add icons to menu items.
+
+Highlight the active menu item.
+
+Improve hover and focus states.
+
+Header Improvements
+
+Improve the top header bar.
+
+The header should include:
+
+Hamburger menu
+
+Logo or app name
+
+Search (optional if applicable)
+
+User profile or settings
+
+Notifications (optional)
+
+The header should:
+
+Stay fixed at the top.
+
+Have subtle shadow or separation.
+
+Adjust properly on mobile.
+
+Mobile First Design
+
+The design should follow mobile-first principles.
+
+On small screens:
+
+Stack elements vertically.
+
+Increase touch targets.
+
+Simplify UI components.
+
+Reduce unnecessary content density.
+
+Ensure buttons are easy to tap.
+
+Make sure:
+
+Text is readable.
+
+Components do not overflow.
+
+Layout scales properly.
+
+Visual Design Enhancements
+
+Improve the overall look and feel of the application.
+
+Apply the following improvements:
+
+Modern typography
+
+Improved font sizes
+
+Better spacing
+
+Soft shadows
+
+Rounded corners
+
+Subtle animations
+
+Smooth transitions
+
+Consistent color usage
+
+Use a clean design similar to modern SaaS dashboards.
+
+UI Components Improvement
+
+Refactor and enhance existing UI components.
+
+Improve:
+
+Cards
+
+Tables
+
+Forms
+
+Buttons
+
+Dropdowns
+
+Modals
+
+Tooltips
+
+Navigation panels
+
+Tables should:
+
+Be responsive
+
+Support horizontal scroll on mobile
+
+Have sticky headers if large
+
+Have clean row spacing
+
+Forms should:
+
+Be easier to read
+
+Have proper validation UI
+
+Have consistent spacing
+
+Use clear labels and helper text
+
+Buttons should:
+
+Have consistent styling
+
+Include hover and active states
+
+Be visually clear and accessible
+
+Accessibility Improvements
+
+Ensure the UI is accessible.
+
+Implement:
+
+Proper color contrast
+
+Keyboard navigation
+
+Focus indicators
+
+Accessible labels
+
+Screen reader compatibility
+
+Follow modern accessibility practices.
+
+Performance Improvements
+
+Improve performance while redesigning.
+
+Avoid:
+
+Heavy UI libraries
+
+Unnecessary rendering
+
+Large CSS bundles
+
+Optimize:
+
+Layout rendering
+
+Lazy loading
+
+Component structure
+
+CSS usage
+
+Image sizes
+
+Animation and Interaction
+
+Add subtle UI animations.
+
+Examples:
+
+Menu slide animation
+
+Hover effects
+
+Button feedback
+
+Page transitions
+
+Card hover elevation
+
+Animations should feel smooth and not slow down the UI.
+
+Code Refactoring
+
+You are allowed to refactor the code.
+
+Improve:
+
+Component structure
+
+Reusability
+
+Maintainability
+
+Clean styling
+
+Separation of concerns
+
+Use modern frontend best practices.
+
+Ensure:
+
+Clean folder structure
+
+Reusable components
+
+Consistent styling approach
+
+Minimal duplication
+
+Design Consistency
+
+Ensure the entire website follows the same design system.
+
+Standardize:
+
+Colors
+
+Fonts
+
+Layout spacing
+
+Buttons
+
+Form inputs
+
+Card layouts
+
+Shadows
+
+Icons
+
+Final Result Expectations
+
+The final UI should feel like a modern professional SaaS application with:
+
+Excellent usability
+
+Clean navigation
+
+Smooth mobile experience
+
+Elegant layout
+
+Responsive design
+
+Consistent design language
+
+Clear visual hierarchy
+
+Fast performance
+
+The user should immediately understand how to use the website without confusion.
+
+Focus heavily on:
+
+usability
+
+responsiveness
+
+clarity
+
+simplicity
+
+modern design patterns
+
+Make the UI experience significantly better than the current implementation.

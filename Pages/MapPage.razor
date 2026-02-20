@@ -10,7 +10,47 @@
 <div class="map-page bootstrap-search-ui">
     <div class="container-fluid px-0">
         <header class="sticky-top filter-header">
-            <div class="d-flex flex-wrap align-items-center gap-2 py-2 px-2 px-md-3">
+            <div class="filter-header-top">
+                <div class="filter-heading">
+                    <span class="eyebrow">Real estate intelligence</span>
+                    <h1>Market Explorer</h1>
+                    <p class="subtext">Search by city, state, or PIN and compare listings instantly.</p>
+                </div>
+                <div class="filter-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="OpenVerificationModal">
+                        Save Search
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            @onclick="ToggleMapAsync"
+                            aria-pressed="@IsMapVisible"
+                            aria-label="@(IsMapVisible ? "Hide map panel" : "Show map panel")">
+                        @(IsMapVisible ? "Hide Map" : "Show Map")
+                    </button>
+                </div>
+            </div>
+
+            <form class="search-form" @onsubmit="OnSearchSubmit" @onsubmit:preventDefault>
+                <div class="search-field">
+                    <label>City</label>
+                    <input class="form-control form-control-sm" placeholder="Mumbai" @bind="City" />
+                </div>
+                <div class="search-field">
+                    <label>State</label>
+                    <input class="form-control form-control-sm" placeholder="Maharashtra" @bind="State" />
+                </div>
+                <div class="search-field">
+                    <label>PIN</label>
+                    <input class="form-control form-control-sm" placeholder="110001" @bind="PostalCode" />
+                </div>
+                <div class="search-field">
+                    <label>Radius (km)</label>
+                    <input class="form-control form-control-sm" type="number" min="1" max="250" @bind="RadiusKm" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm search-btn">Search</button>
+            </form>
+
+            <div class="filter-row">
                 <button type="button" class="btn btn-dark btn-sm filter-chip">For Sale</button>
 
                 <select class="form-select form-select-sm filter-select" @bind="PriceFilter">
@@ -33,18 +73,6 @@
                     <option>Condo</option>
                     <option>Townhouse</option>
                 </select>
-
-                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="OpenVerificationModal">
-                    Save Search
-                </button>
-
-                <button type="button"
-                        class="btn btn-sm btn-outline-primary ms-md-auto"
-                        @onclick="ToggleMapAsync"
-                        aria-pressed="@IsMapVisible"
-                        aria-label="@(IsMapVisible ? "Hide map panel" : "Show map panel")">
-                    @(IsMapVisible ? "Hide Map" : "Show Map")
-                </button>
             </div>
         </header>
 
@@ -617,6 +645,8 @@
     private void OpenVerificationModal() => ShowVerificationModal = true;
 
     private void CloseVerificationModal() => ShowVerificationModal = false;
+
+    private Task OnSearchSubmit() => SearchAsync();
 
     private async Task ResolveGeolocationStatusAsync()
     {

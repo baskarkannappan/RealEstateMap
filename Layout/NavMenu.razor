@@ -1,39 +1,63 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">RealEstateMap</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
+@using Microsoft.AspNetCore.Components.Routing
+
+<nav class="side-nav">
+    <div class="side-section">
+        <div class="side-title">Explore</div>
+        <NavLink class="side-link" href="" Match="NavLinkMatch.All" @onclick="NotifyNavigate">
+            <span class="side-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M4 10.5L12 4l8 6.5v8.5a1 1 0 0 1-1 1h-5.5v-6h-3v6H5a1 1 0 0 1-1-1z" />
+                </svg>
+            </span>
+            <span class="nav-label">Map</span>
+        </NavLink>
+        <NavLink class="side-link" href="counter" @onclick="NotifyNavigate">
+            <span class="side-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 3v2h10V7zm0 5v2h10v-2zm0 5v2h6v-2z" />
+                </svg>
+            </span>
+            <span class="nav-label">Counter</span>
+        </NavLink>
+        <NavLink class="side-link" href="weather" @onclick="NotifyNavigate">
+            <span class="side-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M7 17a4 4 0 0 1 .2-7.99A6 6 0 0 1 19 10.5a3.5 3.5 0 0 1-1 6.5H7z" />
+                </svg>
+            </span>
+            <span class="nav-label">Weather</span>
+        </NavLink>
+    </div>
+
+    <div class="side-section">
+        <div class="side-title">Workspace</div>
+        <button type="button" class="side-link side-ghost" @onclick="NotifyNavigate">
+            <span class="side-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M12 6a4 4 0 1 1 0 8a4 4 0 0 1 0-8zm-7 14a7 7 0 0 1 14 0z" />
+                </svg>
+            </span>
+            <span class="nav-label">My Profile</span>
+        </button>
+        <button type="button" class="side-link side-ghost" @onclick="NotifyNavigate">
+            <span class="side-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.6-4.9-2.6-4.9 2.6.9-5.6-4-3.9 5.5-.8z" />
+                </svg>
+            </span>
+            <span class="nav-label">Saved Searches</span>
         </button>
     </div>
-</div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
+</nav>
 
 @code {
-    private bool collapseNavMenu = true;
+    [Parameter] public EventCallback OnNavigate { get; set; }
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    private async Task NotifyNavigate()
     {
-        collapseNavMenu = !collapseNavMenu;
+        if (OnNavigate.HasDelegate)
+        {
+            await OnNavigate.InvokeAsync();
+        }
     }
 }

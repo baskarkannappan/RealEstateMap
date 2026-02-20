@@ -17,7 +17,7 @@ window.leafletInterop = {
 
         const satellite = L.tileLayer(
             'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            { maxZoom: 20, attribution: 'Tiles © Esri' });
+            { maxZoom: 20, attribution: 'Tiles &copy; Esri' });
 
         lightMap.addTo(this.map);
         L.control.layers({ "Light Map": lightMap, "Satellite": satellite }, null, { collapsed: false }).addTo(this.map);

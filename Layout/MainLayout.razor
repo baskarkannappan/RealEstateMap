@@ -1,30 +1,45 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Nav
-<div class="page @(isMenuHidden ? "menu-hidden" : string.Empty)">
-    <div class="sidebar" aria-hidden="@isMenuHidden">
-        <NavMenu />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
+<div class="app-shell @(isMenuOpen ? "menu-open" : "menu-collapsed")">
+    <header class="app-header">
+        <div class="header-left">
             <button type="button"
-                    class="btn btn-sm btn-outline-primary menu-toggle-btn"
+                    class="icon-button menu-toggle"
                     @onclick="ToggleMenu"
-                    aria-label="@(isMenuHidden ? "Show menu" : "Hide menu")"
-                    title="@(isMenuHidden ? "Show menu" : "Hide menu")">
-                <span aria-hidden="true">@(isMenuHidden ? "☰" : "✕")</span>
+                    aria-label="Toggle navigation">
+                <span class="icon-lines" aria-hidden="true"></span>
             </button>
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <a class="brand" href="">
+                <span class="brand-text">RealEstateMap</span>
+            </a>
         </div>
+        <div class="header-actions">
+            <button type="button" class="icon-button" aria-label="Notifications">
+                <span class="icon-bell" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="profile-chip" aria-label="Account settings">
+                <span class="avatar">BM</span>
+                <span class="profile-text">Baska</span>
+            </button>
+        </div>
+    </header>
 
-        <article class="content px-4 @(IsMapRoute ? "content-flush" : string.Empty)">
-            @Body
-        </article>
-    </main>
+    <div class="app-body">
+        <aside class="app-sidebar" aria-hidden="@(!isMenuOpen)">
+            <NavMenu OnNavigate="HandleNavigate" />
+        </aside>
+        <div class="sidebar-overlay" @onclick="CloseMenu" aria-hidden="true"></div>
+        <main class="app-content">
+            <article class="content @(IsMapRoute ? "content-flush" : string.Empty)">
+                @Body
+            </article>
+        </main>
+    </div>
 </div>
 
 @code {
-    private bool isMenuHidden;
+    private bool isMenuOpen = true;
 
     private bool IsMapRoute => string.IsNullOrEmpty(CurrentPath) || CurrentPath.Equals("map", StringComparison.OrdinalIgnoreCase);
 
@@ -32,6 +47,16 @@
 
     private void ToggleMenu()
     {
-        isMenuHidden = !isMenuHidden;
+        isMenuOpen = !isMenuOpen;
+    }
+
+    private void CloseMenu()
+    {
+        isMenuOpen = false;
+    }
+
+    private void HandleNavigate()
+    {
+        isMenuOpen = false;
     }
 }
