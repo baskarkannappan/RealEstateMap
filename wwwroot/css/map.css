@@ -14,6 +14,99 @@
     padding: 1.1rem 1.25rem 0.9rem;
 }
 
+.filter-header-compact {
+    padding: 0.75rem 0.9rem;
+}
+
+.menu-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.menu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip {
+    border: 1px solid #d5dbe7;
+    background: #ffffff;
+    color: #37537a;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.menu-search {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #e2e8f0;
+}
+
+.search-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    color: #64748b;
+}
+
+.search-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.search-input {
+    border: none;
+    background: transparent;
+    flex: 1 1 auto;
+    font-size: 0.9rem;
+    outline: none;
+    color: var(--text);
+    min-width: 160px;
+}
+
+.search-submit {
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+}
+
+.menu-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-pill {
+    border-radius: 999px;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.action-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    color: #1d4ed8;
+}
+
+.action-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
 .filter-header-top {
     display: flex;
     justify-content: space-between;
@@ -168,30 +261,175 @@
 
 .house-list-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.list-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.list-section-header h2 {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.list-see-more {
+    font-size: 0.85rem;
+    text-decoration: none;
 }
 
 .house-card,
 .empty-results-card {
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     border: 1px solid #e5e7eb;
     box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background: #fff;
 }
 
-.house-card .card-body,
-.empty-results-card .card-body {
-    padding: 0.8rem;
+.house-card-modern {
+    display: flex;
+    flex-direction: column;
+}
+
+.house-card-media {
+    position: relative;
+    height: 190px;
+    background: linear-gradient(140deg, hsl(var(--photo-hue) 65% 72%), hsl(var(--photo-hue) 40% 62%));
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    overflow: hidden;
+}
+
+.house-card-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("/images/house-icon.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 84px;
+    opacity: 0.15;
+}
+
+.house-media-top,
+.house-media-bottom {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1;
+}
+
+.house-media-top {
+    top: 0.75rem;
+}
+
+.house-media-bottom {
+    bottom: 0.75rem;
+}
+
+.media-tag {
+    background: rgba(255, 255, 255, 0.85);
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.75);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+}
+
+.icon-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.media-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #f8fafc;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.media-stats span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(15, 23, 42, 0.35);
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+}
+
+.media-stats svg {
+    width: 13px;
+    height: 13px;
+    fill: currentColor;
+}
+
+.media-type {
+    text-transform: capitalize;
+}
+
+.house-card-body {
+    padding: 0.85rem 0.9rem;
+}
+
+.house-price-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: baseline;
 }
 
 .house-price {
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1.2;
+    font-weight: 700;
+}
+
+.house-pill {
+    background: #e2f5d5;
+    color: #22543d;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+}
+
+.house-added {
+    font-size: 0.7rem;
+    color: var(--muted);
 }
 
 .house-address {
     font-size: 0.85rem;
-    margin-top: 0.15rem;
+    margin-top: 0.35rem;
+    font-weight: 600;
 }
 
 .house-neighborhood {
@@ -199,16 +437,25 @@
     color: var(--muted);
 }
 
-.house-stats {
+.house-meta-row {
     display: flex;
-    gap: 0.8rem;
-    font-weight: 600;
-    font-size: 0.75rem;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
 }
 
-.house-card .btn {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.6rem;
+.house-chip {
+    font-size: 0.7rem;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.house-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
 }
 
 .detail-modal .modal-content {
@@ -331,6 +578,19 @@
         min-height: 320px;
         height: 46vh;
     }
+
+    .menu-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .menu-search {
+        width: 100%;
+    }
+
+    .menu-actions {
+        justify-content: flex-start;
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -369,5 +629,13 @@
     .map-container {
         min-height: 280px;
         height: 43vh;
+    }
+
+    .house-card-media {
+        height: 170px;
+    }
+
+    .media-stats {
+        flex-wrap: wrap;
     }
 }
