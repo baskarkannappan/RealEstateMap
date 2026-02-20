@@ -1,6 +1,6 @@
 .map-page.bootstrap-search-ui {
     --ui-font-size: 0.82rem;
-    --toolbar-height: 76px;
+    --toolbar-height: 64px;
     font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
     font-size: var(--ui-font-size);
     padding: 0;
@@ -16,13 +16,25 @@
 
 .filter-chip {
     min-width: 82px;
-    font-size: 0.76rem;
+    font-size: 0.74rem;
+    padding: 0.2rem 0.55rem;
 }
 
 .filter-select {
     width: auto;
-    min-width: 118px;
-    font-size: 0.78rem;
+    min-width: 96px;
+    font-size: 0.74rem;
+    padding: 0.2rem 0.5rem;
+}
+
+.filter-header .d-flex {
+    gap: 0.35rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.filter-header .btn {
+    padding: 0.2rem 0.55rem;
+    line-height: 1.1;
 }
 
 .status-card {
@@ -66,13 +78,13 @@
 }
 
 .split-pane.map-visible .map-pane-fixed {
-    flex: 0 0 38%;
-    max-width: 38%;
+    flex: 0 0 50%;
+    max-width: 50%;
 }
 
 .split-pane.map-visible .gallery-pane {
-    flex: 1 1 62%;
-    max-width: 62%;
+    flex: 1 1 50%;
+    max-width: 50%;
     height: calc(100vh - var(--toolbar-height));
 }
 
@@ -253,7 +265,7 @@
 
 @media (max-width: 767.98px) {
     .map-page.bootstrap-search-ui {
-        --toolbar-height: 70px;
+        --toolbar-height: 60px;
         font-size: 0.79rem;
     }
 
@@ -262,7 +274,7 @@
     }
 
     .filter-select {
-        min-width: 102px;
+        min-width: 92px;
         flex: 1 1 42%;
     }
 
