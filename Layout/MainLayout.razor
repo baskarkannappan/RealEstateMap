@@ -1,6 +1,14 @@
 @inherits LayoutComponentBase
-@inject NavigationManager Nav
+@inject NavigationManager Nav 
 
+<NavMenu />
+
+<main class="container">
+    @Body
+</main>
+
+
+@* 
 <div class="app-shell @(isMenuOpen ? "menu-open" : "menu-collapsed")">
     <header class="app-header">
         <div class="header-left">
@@ -60,3 +68,4 @@
         isMenuOpen = false;
     }
 }
+ *@

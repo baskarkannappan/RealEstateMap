@@ -1,4 +1,4 @@
-.app-shell {
+/*.app-shell {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -45,7 +45,7 @@
 .icon-button {
     border: 1px solid #dbe2f0;
     background: #fff;
-    border-radius: 10px;
+    border-radius: 0;
     width: 34px;
     height: 34px;
     display: grid;
@@ -64,7 +64,7 @@
 .icon-lines::after,
 .icon-lines {
     background: var(--text);
-    border-radius: 2px;
+    border-radius: 0;
     height: 2px;
     content: "";
     position: absolute;
@@ -90,7 +90,7 @@
     inset: 1px 3px 5px;
     border: 2px solid var(--text);
     border-bottom: none;
-    border-radius: 10px 10px 4px 4px;
+    border-radius: 0;
 }
 
 .icon-bell::after {
@@ -98,7 +98,7 @@
     position: absolute;
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--text);
     bottom: 1px;
     left: 50%;
@@ -110,7 +110,7 @@
     align-items: center;
     gap: 0.5rem;
     border: 1px solid #e2e8f0;
-    border-radius: 999px;
+    border-radius: 0;
     padding: 0.25rem 0.65rem 0.25rem 0.35rem;
     background: #fff;
     font-weight: 600;
@@ -121,7 +121,7 @@
 .avatar {
     width: 26px;
     height: 26px;
-    border-radius: 50%;
+    border-radius: 0;
     background: #1e293b;
     color: #fff;
     display: grid;
@@ -139,7 +139,7 @@
     width: var(--sidebar-width);
     background: #0b1220;
     color: #fff;
-    padding: 1rem 0.6rem;
+    padding: 0.8rem 0.5rem;
     border-right: 1px solid #0f172a;
     transition: width 0.2s ease, transform 0.2s ease;
 }
@@ -161,8 +161,7 @@
     width: var(--sidebar-collapsed);
 }
 
-.menu-collapsed .nav-label,
-.menu-collapsed .side-title {
+.menu-collapsed .nav-label {
     opacity: 0;
     pointer-events: none;
     width: 0;
@@ -180,7 +179,7 @@
         height: calc(100vh - var(--header-height));
         transform: translateX(-100%);
         z-index: 1100;
-        width: min(80vw, 240px);
+        width: min(80vw, 200px);
         box-shadow: var(--shadow-md);
     }
 
@@ -197,11 +196,10 @@
     }
 
     .menu-collapsed .app-sidebar {
-        width: min(80vw, 240px);
+        width: min(80vw, 200px);
     }
 
-    .menu-collapsed .nav-label,
-    .menu-collapsed .side-title {
+    .menu-collapsed .nav-label {
         opacity: 1;
         width: auto;
         pointer-events: auto;
@@ -217,3 +215,4 @@
         display: none;
     }
 }
+*/

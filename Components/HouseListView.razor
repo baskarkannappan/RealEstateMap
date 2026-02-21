@@ -1,3 +1,4 @@
+@using System.Linq
 @using Microsoft.AspNetCore.Components
 @using Markdig
 @using RealEstateMap.Models
@@ -21,7 +22,7 @@
         }
         else
         {
-            @foreach (var house in Houses)
+            @foreach (var house in PagedHouses)
             {
                 var price = BuildPrice(house);
                 var beds = BuildBeds(house);
@@ -93,6 +94,39 @@
             }
         }
     </div>
+
+    @if (Houses.Count > PageSize)
+    {
+        <div class="list-pagination" role="navigation" aria-label="List pagination">
+            <div class="pagination-summary">
+                Showing @StartItem-@EndItem of @Houses.Count
+            </div>
+            <div class="pagination-controls">
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        disabled="@(_currentPage == 1)"
+                        @onclick="PreviousPage">
+                    Prev
+                </button>
+
+                @foreach (var pageNumber in VisiblePages)
+                {
+                    <button type="button"
+                            class="btn btn-sm @(pageNumber == _currentPage ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick="() => GoToPage(pageNumber)">
+                        @pageNumber
+                    </button>
+                }
+
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        disabled="@(_currentPage == TotalPages)"
+                        @onclick="NextPage">
+                    Next
+                </button>
+            </div>
+        </div>
+    }
 </section>
 
 @if (ShowDetailsModal)
@@ -141,6 +175,11 @@
 
     private bool ShowDetailsModal;
     private HouseLocation? SelectedHouse;
+    private int _currentPage = 1;
+    private int _lastHouseCount;
+    private string? _lastFirstKey;
+
+    private const int PageSize = 6;
 
     private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
@@ -188,6 +227,54 @@ Est. payment: $3,420 / mo
 ";
 
     private static readonly string DetailHtml = Markdown.ToHtml(DetailMarkdown, MarkdownPipeline);
+
+    protected override void OnParametersSet()
+    {
+        var firstKey = Houses.Count > 0
+            ? (string.IsNullOrWhiteSpace(Houses[0].Id)
+                ? $"{Houses[0].Address}-{Houses[0].PostalCode}-{Houses[0].City}"
+                : Houses[0].Id)
+            : null;
+
+        if (_lastHouseCount != Houses.Count || !string.Equals(_lastFirstKey, firstKey, StringComparison.Ordinal))
+        {
+            _currentPage = 1;
+            _lastHouseCount = Houses.Count;
+            _lastFirstKey = firstKey;
+        }
+    }
+
+    private IReadOnlyList<HouseLocation> PagedHouses =>
+        Houses.Count == 0
+            ? Houses
+            : Houses.Skip((_currentPage - 1) * PageSize).Take(PageSize).ToList();
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(Houses.Count / (double)PageSize));
+
+    private int StartItem => Houses.Count == 0 ? 0 : ((_currentPage - 1) * PageSize) + 1;
+
+    private int EndItem => Math.Min(Houses.Count, _currentPage * PageSize);
+
+    private IEnumerable<int> VisiblePages
+    {
+        get
+        {
+            var total = TotalPages;
+            var start = Math.Max(1, _currentPage - 2);
+            var end = Math.Min(total, start + 4);
+            start = Math.Max(1, end - 4);
+            for (var i = start; i <= end; i++)
+            {
+                yield return i;
+            }
+        }
+    }
+
+    private void GoToPage(int page) => _currentPage = Math.Clamp(page, 1, TotalPages);
+
+    private void NextPage() => GoToPage(_currentPage + 1);
+
+    private void PreviousPage() => GoToPage(_currentPage - 1);
 
     private async Task OpenDetailsAsync(HouseLocation house)
     {

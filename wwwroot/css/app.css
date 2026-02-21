@@ -13,12 +13,12 @@
     --border: #e2e8f0;
     --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 16px 40px rgba(15, 23, 42, 0.12);
-    --radius-sm: 10px;
-    --radius-md: 16px;
-    --radius-lg: 22px;
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
     --header-height: 56px;
-    --sidebar-width: 200px;
-    --sidebar-collapsed: 64px;
+    --sidebar-width: 160px;
+    --sidebar-collapsed: 52px;
 }
 
 * {
@@ -116,7 +116,7 @@ a:hover,
     background: #b91c1c;
     padding: 1rem 1rem 1rem 3.7rem;
     color: white;
-    border-radius: 12px;
+    border-radius: 0;
     position: relative;
 }
 
@@ -127,7 +127,7 @@ a:hover,
     top: 1rem;
     width: 1.8rem;
     height: 1.8rem;
-    border-radius: 50%;
+    border-radius: 0;
     background: rgba(255, 255, 255, 0.18);
     display: grid;
     place-items: center;
@@ -192,7 +192,7 @@ code {
     color: white;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
