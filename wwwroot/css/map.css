@@ -15,7 +15,7 @@
 }
 
 .filter-header-compact {
-    padding: 0.75rem 0.9rem;
+    padding: 0.5rem 0.75rem;
 }
 
 .menu-bar {
@@ -197,8 +197,8 @@
 }
 
 .split-pane {
-    margin-top: 0.75rem;
-    gap: 0.75rem;
+    margin-top: 0.25rem;
+    gap: 0;
     display: flex;
     flex-wrap: nowrap;
 }
@@ -231,13 +231,13 @@
 }
 
 .split-pane.map-visible .map-pane-fixed {
-    flex: 0 0 46%;
-    max-width: 46%;
+    flex: 0 0 50%;
+    max-width: 50%;
 }
 
 .split-pane.map-visible .gallery-pane {
-    flex: 1 1 54%;
-    max-width: 54%;
+    flex: 1 1 50%;
+    max-width: 50%;
     height: calc(100vh - var(--toolbar-height));
 }
 
@@ -596,8 +596,8 @@
     }
 
     .map-container {
-        min-height: 320px;
-        height: 46vh;
+        min-height: 280px;
+        height: 40vh;
     }
 
     .menu-bar {

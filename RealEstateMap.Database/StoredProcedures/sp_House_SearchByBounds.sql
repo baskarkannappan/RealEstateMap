@@ -5,7 +5,7 @@ CREATE OR ALTER PROCEDURE dbo.sp_House_SearchByBounds
     @North FLOAT,
     @East FLOAT,
     @Skip INT = 0,
-    @Take INT = 250
+    @Take INT = 200
 AS
 BEGIN
     SET NOCOUNT ON;

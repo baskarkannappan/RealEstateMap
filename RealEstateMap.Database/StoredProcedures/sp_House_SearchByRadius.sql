@@ -15,8 +15,6 @@ BEGIN
             HouseId,
             AddressLine AS [Address],
             City,
-            [State],
-            PostalCode,
             Latitude AS Lat,
             Longitude AS Lng,
             DistanceKm = (
@@ -28,7 +26,7 @@ BEGIN
             )
         FROM dbo.tbl_House
     )
-    SELECT HouseId, [Address], City, [State], PostalCode, Lat, Lng, DistanceKm
+    SELECT HouseId, [Address], City, Lat, Lng, DistanceKm
     FROM Candidate
     WHERE DistanceKm <= @RadiusKm
     ORDER BY DistanceKm, City

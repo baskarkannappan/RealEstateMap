@@ -30,7 +30,7 @@ public sealed class HouseRepository : IHouseRepository
                 North = north,
                 East = east,
                 Skip = pagination.Offset,
-                Take = pagination.Take
+                Take = Math.Min(pagination.Take, 200) // Ensure request doesn't exceed 200
             },
             commandType: CommandType.StoredProcedure,
             cancellationToken: cancellationToken);
@@ -53,7 +53,7 @@ public sealed class HouseRepository : IHouseRepository
                 CenterLng = centerLng,
                 RadiusKm = radiusKm,
                 Skip = pagination.Offset,
-                Take = pagination.Take
+                Take = Math.Min(pagination.Take, 200)
             },
             commandType: CommandType.StoredProcedure,
             cancellationToken: cancellationToken);

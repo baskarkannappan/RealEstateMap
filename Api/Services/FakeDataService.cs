@@ -91,9 +91,7 @@ public sealed class FakeDataService
                     Lat = lat,
                     Lng = lng,
                     Address = $"{100 + index} Residency Road",
-                    City = city,
-                    State = state,
-                    PostalCode = $"{100000 + random.Next(0, 899999):D6}"
+                    City = city
                 };
             })
             .ToList();

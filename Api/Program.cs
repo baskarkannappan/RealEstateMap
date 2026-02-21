@@ -49,6 +49,7 @@ builder.Services.AddRealEstateDal(builder.Configuration);
 builder.Services.AddScoped<IHouseQueryService, HouseQueryService>();
 builder.Services.AddScoped<IHouseDbService, HouseDbService>();
 builder.Services.AddScoped<IHouseDataService, SwitchableHouseDataService>();
+builder.Services.AddScoped<IMapCacheService, MapCacheService>();
 builder.Services.AddHostedService<HouseCacheWarmupService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");

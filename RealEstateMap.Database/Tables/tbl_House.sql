@@ -12,5 +12,7 @@ CREATE TABLE dbo.tbl_House
 );
 GO
 
-CREATE INDEX IX_tbl_House_Location ON dbo.tbl_House (Latitude, Longitude);
+CREATE NONCLUSTERED INDEX IX_tbl_House_LatLng
+ON dbo.tbl_House (Latitude, Longitude)
+INCLUDE (HouseId, City, AddressLine);
 CREATE INDEX IX_tbl_House_PostalCode ON dbo.tbl_House (PostalCode);

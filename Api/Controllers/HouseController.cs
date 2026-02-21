@@ -13,11 +13,13 @@ public sealed class HouseController : ControllerBase
 {
     private readonly IHouseDataService _houseDataService;
     private readonly IHouseDbService _houseDbService;
+    private readonly IMapCacheService _mapCacheService;
 
-    public HouseController(IHouseDataService houseDataService, IHouseDbService houseDbService)
+    public HouseController(IHouseDataService houseDataService, IHouseDbService houseDbService, IMapCacheService mapCacheService)
     {
         _houseDataService = houseDataService;
         _houseDbService = houseDbService;
+        _mapCacheService = mapCacheService;
     }
 
     [HttpPost("list")]
@@ -42,7 +44,11 @@ public sealed class HouseController : ControllerBase
         [FromQuery] double east,
         CancellationToken cancellationToken)
     {
-        var results = await _houseDataService.GetByBoundsAsync(south, west, north, east, cancellationToken);
+        var results = await _mapCacheService.GetOrAddAsync(
+            south, west, north, east,
+            ct => _houseDataService.GetByBoundsAsync(south, west, north, east, ct),
+            cancellationToken);
+
         return Ok(results);
     }
 

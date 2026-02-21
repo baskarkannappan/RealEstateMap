@@ -103,14 +103,21 @@ public sealed class HybridCacheService : ICacheService
             return;
         }
 
-        var versionKey = BuildRegionVersionKey(region);
-        var bytes = Encoding.UTF8.GetBytes(version.ToString());
-        var options = new DistributedCacheEntryOptions
+        try
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30)
-        };
+            var versionKey = BuildRegionVersionKey(region);
+            var bytes = Encoding.UTF8.GetBytes(version.ToString());
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30)
+            };
 
-        await _distributedCache.SetAsync(versionKey, bytes, options, cancellationToken);
+            await _distributedCache.SetAsync(versionKey, bytes, options, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to invalidate region {Region} in distributed cache", region);
+        }
     }
 
     private async Task<long> GetRegionVersionAsync(string region, CancellationToken cancellationToken)
@@ -122,12 +129,19 @@ public sealed class HybridCacheService : ICacheService
 
         if (_distributedCache is not null)
         {
-            var payload = await _distributedCache.GetAsync(BuildRegionVersionKey(region), cancellationToken);
-            if (payload is { Length: > 0 } &&
-                long.TryParse(Encoding.UTF8.GetString(payload), out var distributedVersion))
+            try
             {
-                _regionVersions[region] = distributedVersion;
-                return distributedVersion;
+                var payload = await _distributedCache.GetAsync(BuildRegionVersionKey(region), cancellationToken);
+                if (payload is { Length: > 0 } &&
+                    long.TryParse(Encoding.UTF8.GetString(payload), out var distributedVersion))
+                {
+                    _regionVersions[region] = distributedVersion;
+                    return distributedVersion;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to read region version for {Region} from distributed cache", region);
             }
         }
 
@@ -136,15 +150,22 @@ public sealed class HybridCacheService : ICacheService
 
         if (_distributedCache is not null)
         {
-            var options = new DistributedCacheEntryOptions
+            try
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30)
-            };
-            await _distributedCache.SetAsync(
-                BuildRegionVersionKey(region),
-                Encoding.UTF8.GetBytes(initial.ToString()),
-                options,
-                cancellationToken);
+                var options = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30)
+                };
+                await _distributedCache.SetAsync(
+                    BuildRegionVersionKey(region),
+                    Encoding.UTF8.GetBytes(initial.ToString()),
+                    options,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to set initial region version for {Region} in distributed cache", region);
+            }
         }
 
         return initial;

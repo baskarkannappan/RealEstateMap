@@ -7,6 +7,4 @@ public sealed class HouseLocation
     public double Lng { get; init; }
     public string Address { get; init; } = string.Empty;
     public string City { get; init; } = string.Empty;
-    public string State { get; init; } = string.Empty;
-    public string PostalCode { get; init; } = string.Empty;
 }

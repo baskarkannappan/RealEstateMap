@@ -41,7 +41,7 @@ public sealed class HouseQueryService : IHouseQueryService
         double east,
         CancellationToken cancellationToken)
     {
-        var pagination = new SharedModels.PaginationRequest { PageNumber = 1, PageSize = 500 };
+        var pagination = new SharedModels.PaginationRequest { PageNumber = 1, PageSize = 200 }; // Optimized limit
         var rows = await _houseRepository.SearchByBoundsAsync(south, west, north, east, pagination, cancellationToken);
         return rows.Select(ToApiModel).ToList();
     }
@@ -82,8 +82,6 @@ public sealed class HouseQueryService : IHouseQueryService
         Id = model.HouseId == Guid.Empty ? Guid.NewGuid().ToString("N") : model.HouseId.ToString("N"),
         Address = model.Address,
         City = model.City,
-        State = model.State,
-        PostalCode = model.PostalCode,
         Lat = model.Lat,
         Lng = model.Lng
     };

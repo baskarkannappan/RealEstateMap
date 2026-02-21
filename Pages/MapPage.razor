@@ -271,7 +271,7 @@
                 _lastVisualBucket = bucket;
                 StatusMessage = null;
 
-                var expanded = ExpandBounds(south, west, north, east, 0.35);
+                var expanded = ExpandBounds(south, west, north, east, 0.5);
                 var cacheKey = BuildCacheKey(expanded.South, expanded.West, expanded.North, expanded.East);
 
                 if (!_boundsCache.TryGetValue(cacheKey, out var candidates))
@@ -544,7 +544,7 @@
                 "leafletInterop.addMarker",
                 house.Lat,
                 house.Lng,
-                $"{house.Address} - {house.City}, {house.State} ({house.PostalCode})",
+                $"{house.Address} - {house.City}",
                 color);
         }
     }
