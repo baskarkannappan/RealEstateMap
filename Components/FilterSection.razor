@@ -1,0 +1,168 @@
+@using RealEstateMap.Models
+@using RealEstateMap.Services
+@using System.Linq
+@inject IJSRuntime JS
+
+<div class="filter-wrapper @(IsHidden ? "is-hidden" : "")">
+    <div class="filter-section p-2 bg-white border-bottom shadow-sm">
+        <div class="container-fluid">
+            <div class="row g-2 align-items-center filter-row">
+                <!-- Location Query -->
+                <div class="col-auto" style="min-width: 180px;">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="oi oi-magnifying-glass"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" 
+                               placeholder="Search..." 
+                               @bind="SearchQuery" @bind:event="oninput" />
+                    </div>
+                </div>
+
+                <!-- Cascading Dropdowns -->
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" @onchange="OnStateChanged" style="min-width: 110px;">
+                        <option value="">State</option>
+                        @foreach (var state in IndiaLocationData.GetStates())
+                        {
+                            <option value="@state">@state</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" @onchange="OnDistrictChanged" style="min-width: 110px;" disabled="@(string.IsNullOrEmpty(SelectedState))">
+                        <option value="">District</option>
+                        @foreach (var district in AvailableDistricts)
+                        {
+                            <option value="@district">@district</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" @bind="City" style="min-width: 110px;" disabled="@(string.IsNullOrEmpty(SelectedDistrict))">
+                        <option value="">City</option>
+                        @foreach (var city in AvailableCities)
+                        {
+                            <option value="@city">@city</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Price Range -->
+                <div class="col-auto d-none d-lg-block" style="min-width: 180px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small fw-bold text-nowrap">₹@FormattedMinPrice - @FormattedMaxPrice</span>
+                        <div class="price-slider-container flex-grow-1 position-relative" style="height: 20px; width: 100px;">
+                            <input type="range" class="form-range position-absolute" min="0" max="10000000" step="100000" 
+                                   @bind="MinPrice" @bind:event="oninput" style="z-index: 2;" />
+                            <input type="range" class="form-range" min="0" max="10000000" step="100000" 
+                                   @bind="MaxPrice" @bind:event="oninput" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beds -->
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" @bind="Beds" title="Beds">
+                        <option value="0">Beds</option>
+                        @foreach (var opt in BedOptions.Skip(1))
+                        {
+                            <option value="@opt">@opt Beds</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- More Filters Button -->
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm d-flex align-items-center" @onclick="() => OnMoreClicked.InvokeAsync()">
+                        <i class="oi oi-options me-1"></i>
+                        <span class="d-none d-md-inline">More Filters</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm px-3" @onclick="NotifyChanged">
+                        Search
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="filter-toggle-btn shadow-sm" @onclick="ToggleVisibility">
+        <i class="oi @(IsHidden ? "oi-chevron-bottom" : "oi-chevron-top")"></i>
+    </button>
+</div>
+
+@code {
+    [Parameter] public EventCallback<MapSearchRequest> OnFiltersChanged { get; set; }
+    [Parameter] public EventCallback OnMoreClicked { get; set; }
+
+    private bool IsHidden { get; set; }
+    private string SearchQuery { get; set; } = "";
+    private decimal MinPrice { get; set; } = 0;
+    private decimal MaxPrice { get; set; } = 10000000;
+    private string Beds { get; set; } = "0";
+    private string Baths { get; set; } = "0";
+    private string HomeType { get; set; } = "";
+    private string SelectedState { get; set; } = "";
+    private string SelectedDistrict { get; set; } = "";
+    private string City { get; set; } = "";
+
+    private IEnumerable<string> AvailableDistricts { get; set; } = Enumerable.Empty<string>();
+    private IEnumerable<string> AvailableCities { get; set; } = Enumerable.Empty<string>();
+
+    private readonly List<string> BedOptions = new() { "0", "1", "2", "3", "4", "5+" };
+    private readonly List<string> HomeTypes = new() 
+    { 
+        "Villa", "House", "Apartment", "Row House", "Plot / Land", 
+        "Independent House", "Builder Floor", "Studio Apartment", 
+        "Farm House", "Penthouse", "Duplex", "Commercial Space" 
+    };
+
+    private string FormattedMinPrice => FormatPrice(MinPrice);
+    private string FormattedMaxPrice => FormatPrice(MaxPrice);
+
+    private string FormatPrice(decimal price)
+    {
+        if (price >= 10000000) return (price / 10000000).ToString("N1") + " Cr";
+        if (price >= 100000) return (price / 100000).ToString("N0") + " L";
+        return price.ToString("N0");
+    }
+
+    private void OnStateChanged(ChangeEventArgs e)
+    {
+        SelectedState = e.Value?.ToString() ?? "";
+        AvailableDistricts = IndiaLocationData.GetDistricts(SelectedState).OrderBy(d => d);
+        SelectedDistrict = "";
+        AvailableCities = Enumerable.Empty<string>();
+        City = "";
+        StateHasChanged();
+    }
+
+    private void OnDistrictChanged(ChangeEventArgs e)
+    {
+        SelectedDistrict = e.Value?.ToString() ?? "";
+        AvailableCities = IndiaLocationData.GetCities(SelectedState, SelectedDistrict).OrderBy(c => c);
+        City = "";
+        StateHasChanged();
+    }
+
+    private void ToggleVisibility() => IsHidden = !IsHidden;
+
+    private void NotifyChanged()
+    {
+        var request = new MapSearchRequest
+        {
+            MinPrice = MinPrice,
+            MaxPrice = MaxPrice,
+            MinBeds = Beds == "5+" ? 5 : int.Parse(Beds),
+            MinBaths = Baths == "5+" ? 5 : int.Parse(Baths),
+            HomeType = HomeType,
+            State = SelectedState,
+            City = City,
+            PostalCode = SearchQuery.Length == 6 && int.TryParse(SearchQuery, out _) ? SearchQuery : null
+        };
+        OnFiltersChanged.InvokeAsync(request);
+    }
+}
+

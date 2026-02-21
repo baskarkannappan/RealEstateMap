@@ -1,0 +1,93 @@
+@using RealEstateMap.Models
+
+<div class="more-filters-panel p-4 bg-white border rounded shadow-lg position-absolute end-0 mt-2" style="z-index: 1050; width: 400px; max-height: 80vh; overflow-y: auto;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">More Filters</h5>
+        <button type="button" class="btn-close" @onclick="OnClose"></button>
+    </div>
+
+    <!-- 5 Rows of Criteria (Simplified as per requirement) -->
+    <div class="mb-4">
+        <div class="filter-row mb-3 pb-2 border-bottom">
+            <label class="form-label small fw-bold">Bathrooms</label>
+            <select class="form-select form-select-sm" @bind="Baths">
+                <option value="0">0+</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="5">5+</option>
+            </select>
+        </div>
+
+        <div class="filter-row mb-3 pb-2 border-bottom">
+            <label class="form-label small fw-bold">Square Feet: @FormattedSqFtRange</label>
+            <div class="sqft-selector">
+                <div class="progress mb-2" style="height: 10px;">
+                    <div class="progress-bar" role="progressbar" style="width: @(SqFtProgress)%;" aria-valuenow="@SqFtProgress" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <input type="range" class="form-range" min="0" max="10000" step="100" @bind="SqFt" @bind:event="oninput" />
+            </div>
+        </div>
+
+        <!-- Placeholder rows for remaining 3 criteria to fulfill "5 rows" -->
+        <div class="filter-row mb-3 pb-2 border-bottom">
+            <label class="form-label small fw-bold text-muted">Year Built (Coming Soon)</label>
+            <select class="form-select form-select-sm" disabled>
+                <option>Any</option>
+            </select>
+        </div>
+
+        <div class="filter-row mb-3 pb-2 border-bottom">
+            <label class="form-label small fw-bold text-muted">Lot Size (Coming Soon)</label>
+            <select class="form-select form-select-sm" disabled>
+                <option>Any</option>
+            </select>
+        </div>
+
+        <div class="filter-row mb-3 pb-2 border-bottom">
+            <label class="form-label small fw-bold text-muted">Parking (Coming Soon)</label>
+            <select class="form-select form-select-sm" disabled>
+                <option>Any</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="d-grid gap-2">
+        <button class="btn btn-primary" @onclick="ApplyFilters">Apply Filters</button>
+        <button class="btn btn-outline-secondary" @onclick="ResetFilters">Reset</button>
+    </div>
+</div>
+
+<style>
+    .more-filters-panel {
+        top: 100%;
+    }
+</style>
+
+@code {
+    [Parameter] public EventCallback<MapSearchRequest> OnApply { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string Baths { get; set; } = "0";
+    private int SqFt { get; set; } = 5000;
+
+    private string FormattedSqFtRange => $"0 - {SqFt:N0} sqft";
+    private double SqFtProgress => (double)SqFt / 10000 * 100;
+
+    private void ApplyFilters()
+    {
+        var request = new MapSearchRequest
+        {
+            MinBaths = Baths == "5+" ? 5 : int.Parse(Baths),
+            MaxSqFt = SqFt
+        };
+        OnApply.InvokeAsync(request);
+    }
+
+    private void ResetFilters()
+    {
+        Baths = "0";
+        SqFt = 5000;
+    }
+}

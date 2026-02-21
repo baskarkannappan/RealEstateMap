@@ -8,23 +8,25 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse @NavBarCssClass" id="navbarCollapse" @onclick="ToggleNavMenu">
-            <ul class="navbar-nav me-auto mb-2 mb-md-0">
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <span class="oi oi-home" aria-hidden="true"></span> Home
-                    </NavLink>
-                </li>
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="counter">
-                        <span class="oi oi-plus" aria-hidden="true"></span> Counter
-                    </NavLink>
-                </li>
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="fetchdata">
-                        <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-                    </NavLink>
-                </li>
-            </ul>
+            <div class="d-flex align-items-center me-auto">
+                <div class="dropdown me-3">
+                    <button class="btn btn-secondary dropdown-toggle btn-sm" type="button" id="intentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        Property Intent
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="intentDropdown">
+                        <li><a class="dropdown-item" href="#">Buy</a></li>
+                        <li><a class="dropdown-item" href="#">Sell</a></li>
+                        <li><a class="dropdown-item" href="#">Lease</a></li>
+                    </ul>
+                </div>
+                <ul class="navbar-nav mb-2 mb-md-0">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                            <span class="oi oi-home" aria-hidden="true"></span> Home
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </nav>

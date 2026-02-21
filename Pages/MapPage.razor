@@ -9,53 +9,29 @@
 
 <div class="map-page bootstrap-search-ui">
     <div class="container-fluid px-0">
-        <header class="sticky-top filter-header filter-header-compact">
-            <div class="menu-bar">
-                <div class="menu-chips">
-                    <button type="button" class="chip">Home</button>
-                    <button type="button" class="chip">$0 - Max</button>
-                    <button type="button" class="chip">Bed & Bath</button>
-                    <button type="button" class="chip">Type of House</button>
-                    <button type="button" class="chip">City</button>
-                    <button type="button" class="chip">More</button>
-                </div>
+        <header class="sticky-top p-0 bg-white border-bottom d-flex align-items-center justify-content-between">
+            <div class="flex-grow-1 @(IsMobileSearchVisible ? "" : "mobile-hide")">
+                <FilterSection OnFiltersChanged="HandleFiltersChanged" OnMoreClicked="ToggleMoreFilters" />
+            </div>
+            
+            <button class="btn btn-link text-primary mobile-search-toggle d-md-none p-2" @onclick="ToggleMobileSearch">
+                <i class="oi oi-magnifying-glass" style="font-size: 1.5rem;"></i>
+            </button>
 
-                <form class="menu-search" @onsubmit="OnSearchSubmit" @onsubmit:preventDefault>
-                    <span class="search-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M11 4a7 7 0 015.3 11.6l3.1 3.1-1.4 1.4-3.1-3.1A7 7 0 1111 4zm0 2a5 5 0 100 10 5 5 0 000-10z" />
-                        </svg>
-                    </span>
-                    <input class="search-input"
-                           placeholder="Address, City, Neighbourhood or MLS #"
-                           @bind="City" />
-                    <button type="submit" class="btn btn-primary btn-sm search-submit">Search</button>
-                </form>
+            @if (ShowMoreFilters)
+            {
+                <MoreFiltersPanel OnApply="HandleMoreFiltersApplied" OnClose="ToggleMoreFilters" />
+            }
+        </header>
 
-                <div class="menu-actions">
-                    <button type="button" class="btn btn-sm btn-outline-primary action-pill">
-                        <span class="action-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M7 10V8a5 5 0 0110 0v2h1a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2h1zm2 0h6V8a3 3 0 00-6 0v2z" />
-                            </svg>
-                        </span>
-                        Open Houses
-                    </button>
-                    <button type="button"
-                            class="btn btn-sm btn-outline-primary action-pill"
-                            @onclick="ToggleMapAsync"
-                            aria-pressed="@IsMapVisible"
-                            aria-label="@(IsMapVisible ? "Hide map panel" : "Show map panel")">
-                        <span class="action-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M15 5l-6 2-6-2v14l6 2 6-2 6 2V7l-6-2zm0 2.2l4-1.3v11.9l-4 1.3V7.2zM9 6.9l4-1.3v11.9l-4 1.3V6.9zM5 6.9l4 1.3v11.9l-4-1.3V6.9z" />
-                            </svg>
-                        </span>
-                        @(IsMapVisible ? "View in Map" : "View in Map")
-                    </button>
+        @if (IsLoading)
+        {
+            <div class="spinner-container">
+                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
-        </header>
+        }
 
         @if (!string.IsNullOrWhiteSpace(StatusMessage))
         {
@@ -71,12 +47,29 @@
             }
 
             <section class="col-12 @(IsMapVisible ? "col-md-8" : "col-md-12") gallery-pane">
-                <div class="gallery-scroller">
-                    <HouseListView Houses="ListViewData"
-                                   CenterLat="_activeCenterLat"
-                                   CenterLng="_activeCenterLng"
-                                   GeolocationStatus="@GeolocationStatus"
-                                   OnSelect="OnHouseSelectedAsync" />
+                <div class="gallery-scroller d-flex flex-column h-100">
+                    <div class="flex-grow-1 overflow-auto">
+                        <HouseListView Houses="ListViewData"
+                                       CenterLat="_activeCenterLat"
+                                       CenterLng="_activeCenterLng"
+                                       GeolocationStatus="@GeolocationStatus"
+                                       OnSelect="OnHouseSelectedAsync" />
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div class="pagination-footer p-2 bg-white border-top d-flex justify-content-between align-items-center">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                disabled="@(CurrentPage <= 1)" 
+                                @onclick="PreviousPage">
+                            <i class="oi oi-chevron-left"></i> Previous
+                        </button>
+                        <span class="small text-muted">Page @CurrentPage</span>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                disabled="@(ListViewData.Count < PageSize)" 
+                                @onclick="NextPage">
+                            Next <i class="oi oi-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </section>
         </div>
@@ -182,17 +175,66 @@
     private double? _activeCenterLat = 20.5937;
     private double? _activeCenterLng = 78.9629;
 
-    private string PostalCode = string.Empty;
-    private string City = string.Empty;
-    private string State = string.Empty;
     private double RadiusKm = 10;
-    private string PriceFilter = "200k-1.5M+";
-    private string BedsFilter = "0+-5+";
-    private string HomeTypeFilter = "Home Type";
     private string GeolocationStatus = "Geolocation: Checking...";
     private bool ShowVerificationModal;
+    private bool IsLoading;
+    private bool IsMobileSearchVisible;
+    private bool ShowMoreFilters;
     private string? StatusMessage;
     private List<HouseLocation> ListViewData = [];
+    private MapSearchRequest CurrentSearchRequest { get; set; } = new();
+
+    private int CurrentPage = 1;
+    private int PageSize = 20;
+
+    private void ToggleMobileSearch() => IsMobileSearchVisible = !IsMobileSearchVisible;
+    private void ToggleMoreFilters() => ShowMoreFilters = !ShowMoreFilters;
+
+    private async Task NextPage()
+    {
+        CurrentPage++;
+        await SearchAsync();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage > 1)
+        {
+            CurrentPage--;
+            await SearchAsync();
+        }
+    }
+
+    private async Task HandleFiltersChanged(MapSearchRequest request)
+    {
+        IsLoading = true;
+        CurrentPage = 1; // Reset to first page on filter change
+        StateHasChanged();
+
+        CurrentSearchRequest.MinPrice = request.MinPrice;
+        CurrentSearchRequest.MaxPrice = request.MaxPrice;
+        CurrentSearchRequest.MinBeds = request.MinBeds;
+        CurrentSearchRequest.MinBaths = request.MinBaths;
+        CurrentSearchRequest.HomeType = request.HomeType;
+        CurrentSearchRequest.State = request.State;
+        CurrentSearchRequest.City = request.City;
+        
+        await SearchAsync();
+        
+        IsLoading = false;
+        IsMobileSearchVisible = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleMoreFiltersApplied(MapSearchRequest request)
+    {
+        CurrentSearchRequest.MinBaths = request.MinBaths;
+        CurrentSearchRequest.MaxSqFt = request.MaxSqFt;
+        ShowMoreFilters = false;
+        
+        await SearchAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -311,12 +353,21 @@
 
     private async Task SearchAsync()
     {
+        if (IsLoading) return;
+
         try
         {
-            var request = BuildSearchRequest();
-            if (request is null)
+            IsLoading = true;
+            await InvokeAsync(StateHasChanged);
+
+            var request = CurrentSearchRequest;
+            request.Pagination.Page = CurrentPage;
+            request.Pagination.PageSize = PageSize;
+            
+            // Additional resolution logic if needed
+            if (string.IsNullOrEmpty(request.City) && string.IsNullOrEmpty(request.PostalCode))
             {
-                return;
+                // Fallback or keep current map view
             }
 
             _isExplicitSearchInProgress = true;
@@ -378,7 +429,9 @@
         }
         finally
         {
+            IsLoading = false;
             _isExplicitSearchInProgress = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -439,35 +492,6 @@
         await JS.InvokeVoidAsync("leafletInterop.showSearchResult", _savedLat, _savedLng, _savedZoom, RadiusKm);
     }
 
-    private MapSearchRequest? BuildSearchRequest()
-    {
-        var pin = string.IsNullOrWhiteSpace(PostalCode) ? null : PostalCode.Trim();
-        if (!string.IsNullOrWhiteSpace(pin) && !PinRegex.IsMatch(pin))
-        {
-            StatusMessage = "Please enter a valid 6-digit Indian PIN code.";
-            return null;
-        }
-
-        var city = string.IsNullOrWhiteSpace(City) ? null : City.Trim();
-        var state = string.IsNullOrWhiteSpace(State) ? null : State.Trim();
-
-        if (!TryResolveCenter(pin, city, state, out var centerLat, out var centerLng))
-        {
-            StatusMessage = "Could not resolve search center for the provided India location.";
-            return null;
-        }
-
-        return new MapSearchRequest
-        {
-            PostalCode = pin,
-            City = city,
-            State = state,
-            CenterLat = centerLat,
-            CenterLng = centerLng,
-            RadiusKm = Math.Clamp(RadiusKm, 1, 250)
-        };
-    }
-
     private static bool TryResolveCenter(string? postalCode, string? city, string? state, out double lat, out double lng)
     {
         if (!string.IsNullOrWhiteSpace(postalCode))
@@ -477,17 +501,6 @@
                 lat = exactPinCenter.Lat;
                 lng = exactPinCenter.Lng;
                 return true;
-            }
-
-            if (postalCode.Length >= 3)
-            {
-                var prefix = postalCode[..3];
-                if (PinPrefixCenters.TryGetValue(prefix, out var prefixCenter))
-                {
-                    lat = prefixCenter.Lat;
-                    lng = prefixCenter.Lng;
-                    return true;
-                }
             }
         }
 
@@ -500,13 +513,6 @@
                 lng = cityStateCenter.Lng;
                 return true;
             }
-        }
-
-        if (!string.IsNullOrWhiteSpace(city) && CityCenters.TryGetValue(city.ToLowerInvariant(), out var cityCenter))
-        {
-            lat = cityCenter.Lat;
-            lng = cityCenter.Lng;
-            return true;
         }
 
         lat = 0;
