@@ -5,23 +5,24 @@
 
 <div class="filter-wrapper @(IsHidden ? "is-hidden" : "")">
     <div class="filter-section p-2 bg-white border-bottom shadow-sm">
-        <div class="container-fluid">
-            <div class="row g-2 align-items-center filter-row">
+        <div class="container-fluid px-2">
+            <!-- Single Row Horizontal Scrolling Filter Bar -->
+            <div class="d-flex align-items-center gap-2 overflow-x-auto hide-scrollbar flex-nowrap py-1">
                 <!-- Location Query -->
-                <div class="col-auto" style="min-width: 180px;">
+                <div class="filter-item flex-shrink-0" style="min-width: 140px;">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-transparent border-end-0">
-                            <i class="oi oi-magnifying-glass"></i>
+                        <span class="input-group-text bg-transparent border-end-0 px-2">
+                            <i class="oi oi-magnifying-glass" style="font-size: 0.8rem;"></i>
                         </span>
-                        <input type="text" class="form-control border-start-0" 
+                        <input type="text" class="form-control border-start-0 ps-0" 
                                placeholder="Search..." 
-                               @bind="SearchQuery" @bind:event="oninput" />
+                               @bind="SearchQuery" @bind:event="oninput" style="font-size: 0.85rem;" />
                     </div>
                 </div>
 
-                <!-- Cascading Dropdowns -->
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" @onchange="OnStateChanged" style="min-width: 110px;">
+                <!-- State Dropdown -->
+                <div class="filter-item flex-shrink-0">
+                    <select class="form-select form-select-sm" @onchange="OnStateChanged" style="font-size: 0.85rem; width: auto; min-width: 90px;">
                         <option value="">State</option>
                         @foreach (var state in IndiaLocationData.GetStates())
                         {
@@ -30,8 +31,9 @@
                     </select>
                 </div>
 
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" @onchange="OnDistrictChanged" style="min-width: 110px;" disabled="@(string.IsNullOrEmpty(SelectedState))">
+                <!-- District Dropdown -->
+                <div class="filter-item flex-shrink-0">
+                    <select class="form-select form-select-sm" @onchange="OnDistrictChanged" disabled="@(string.IsNullOrEmpty(SelectedState))" style="font-size: 0.85rem; width: auto; min-width: 90px;">
                         <option value="">District</option>
                         @foreach (var district in AvailableDistricts)
                         {
@@ -40,64 +42,85 @@
                     </select>
                 </div>
 
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" @bind="City" style="min-width: 110px;" disabled="@(string.IsNullOrEmpty(SelectedDistrict))">
-                        <option value="">City</option>
-                        @foreach (var city in AvailableCities)
-                        {
-                            <option value="@city">@city</option>
-                        }
-                    </select>
+                <!-- Price Trigger (Mobile Only Button) -->
+                <div class="filter-item flex-shrink-0 d-md-none">
+                    <button class="btn btn-outline-secondary btn-sm text-nowrap" @onclick="TogglePricePopup" style="font-size: 0.85rem;">
+                        ₹@FormattedPriceRangeShort
+                    </button>
                 </div>
 
-                <!-- Price Range -->
-                <div class="col-auto d-none d-lg-block" style="min-width: 180px;">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small fw-bold text-nowrap">₹@FormattedMinPrice - @FormattedMaxPrice</span>
-                        <div class="price-slider-container flex-grow-1 position-relative" style="height: 20px; width: 100px;">
-                            <input type="range" class="form-range position-absolute" min="0" max="10000000" step="100000" 
-                                   @bind="MinPrice" @bind:event="oninput" style="z-index: 2;" />
-                            <input type="range" class="form-range" min="0" max="10000000" step="100000" 
-                                   @bind="MaxPrice" @bind:event="oninput" />
-                        </div>
+                <!-- Desktop Price Range -->
+                <div class="filter-item flex-shrink-0 d-none d-md-flex align-items-center gap-2" style="min-width: 200px;">
+                    <span class="small fw-bold text-nowrap">₹@FormattedMinPrice-@FormattedMaxPrice</span>
+                    <div class="price-slider-container position-relative flex-grow-1" style="height: 24px;">
+                        <input type="range" class="form-range" min="0" max="10000000" step="100000" 
+                               @bind="MinPrice" @bind:event="oninput" style="z-index: 2;" />
+                        <input type="range" class="form-range" min="0" max="10000000" step="100000" 
+                               @bind="MaxPrice" @bind:event="oninput" />
                     </div>
                 </div>
 
                 <!-- Beds -->
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" @bind="Beds" title="Beds">
+                <div class="filter-item flex-shrink-0">
+                    <select class="form-select form-select-sm" @bind="Beds" style="font-size: 0.85rem; width: auto;">
                         <option value="0">Beds</option>
                         @foreach (var opt in BedOptions.Skip(1))
                         {
-                            <option value="@opt">@opt Beds</option>
+                            <option value="@opt">@opt+</option>
                         }
                     </select>
                 </div>
 
-                <!-- More Filters Button -->
-                <div class="col-auto ms-auto d-flex gap-2">
+                <!-- More Button -->
+                <div class="filter-item flex-shrink-0">
                     <button class="btn btn-outline-secondary btn-sm d-flex align-items-center" @onclick="() => OnMoreClicked.InvokeAsync()">
-                        <i class="oi oi-options me-1"></i>
-                        <span class="d-none d-md-inline">More Filters</span>
+                        <i class="oi oi-options me-1" style="font-size: 0.8rem;"></i>
+                        <span style="font-size: 0.85rem;">Filters</span>
                     </button>
-                    <button class="btn btn-primary btn-sm px-3" @onclick="NotifyChanged">
+                </div>
+
+                <!-- Search Button -->
+                <div class="filter-item flex-shrink-0 ms-auto">
+                    <button class="btn btn-primary btn-sm px-3" @onclick="NotifyAndCollapse" style="font-size: 0.85rem; font-weight: 600;">
                         Search
                     </button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <button class="filter-toggle-btn shadow-sm" @onclick="ToggleVisibility">
+
+    <!-- Mobile Price Popup Overlay -->
+    @if (_showPricePopup)
+    {
+        <div class="price-popup-overlay" @onclick="TogglePricePopup">
+            <div class="price-popup-content p-3 shadow-lg" @onclick:stopPropagation>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Price Range</h6>
+                    <span class="small text-primary fw-bold">₹@FormattedMinPrice - @FormattedMaxPrice</span>
+                </div>
+                <div class="price-slider-container position-relative mb-4" style="height: 40px;">
+                    <input type="range" class="form-range" min="0" max="10000000" step="100000" 
+                           @bind="MinPrice" @bind:event="oninput" style="z-index: 2;" />
+                    <input type="range" class="form-range" min="0" max="10000000" step="100000" 
+                           @bind="MaxPrice" @bind:event="oninput" />
+                </div>
+                <button class="btn btn-primary w-100 btn-sm" @onclick="TogglePricePopup">Done</button>
+            </div>
+        </div>
+    }
+
+    <button class="filter-toggle-btn shadow-sm" @onclick="ToggleVisibility" aria-label="Toggle filters">
         <i class="oi @(IsHidden ? "oi-chevron-bottom" : "oi-chevron-top")"></i>
     </button>
 </div>
+
 
 @code {
     [Parameter] public EventCallback<MapSearchRequest> OnFiltersChanged { get; set; }
     [Parameter] public EventCallback OnMoreClicked { get; set; }
 
-    private bool IsHidden { get; set; }
+    private bool IsHidden { get; set; } = false;
+    private bool _showPricePopup = false;
     private string SearchQuery { get; set; } = "";
     private decimal MinPrice { get; set; } = 0;
     private decimal MaxPrice { get; set; } = 10000000;
@@ -112,21 +135,24 @@
     private IEnumerable<string> AvailableCities { get; set; } = Enumerable.Empty<string>();
 
     private readonly List<string> BedOptions = new() { "0", "1", "2", "3", "4", "5+" };
-    private readonly List<string> HomeTypes = new() 
-    { 
-        "Villa", "House", "Apartment", "Row House", "Plot / Land", 
-        "Independent House", "Builder Floor", "Studio Apartment", 
-        "Farm House", "Penthouse", "Duplex", "Commercial Space" 
-    };
 
     private string FormattedMinPrice => FormatPrice(MinPrice);
     private string FormattedMaxPrice => FormatPrice(MaxPrice);
+
+    private string FormattedPriceRangeShort => $"{FormatPriceShort(MinPrice)}-{FormatPriceShort(MaxPrice)}";
 
     private string FormatPrice(decimal price)
     {
         if (price >= 10000000) return (price / 10000000).ToString("N1") + " Cr";
         if (price >= 100000) return (price / 100000).ToString("N0") + " L";
         return price.ToString("N0");
+    }
+
+    private string FormatPriceShort(decimal price)
+    {
+        if (price >= 10000000) return (price / 10000000).ToString("N1") + "Cr";
+        if (price >= 100000) return (price / 100000).ToString("N0") + "L";
+        return (price / 1000).ToString("N0") + "k";
     }
 
     private void OnStateChanged(ChangeEventArgs e)
@@ -148,6 +174,13 @@
     }
 
     private void ToggleVisibility() => IsHidden = !IsHidden;
+    private void TogglePricePopup() => _showPricePopup = !_showPricePopup;
+
+    private void NotifyAndCollapse()
+    {
+        NotifyChanged();
+        IsHidden = true; 
+    }
 
     private void NotifyChanged()
     {
@@ -165,4 +198,3 @@
         OnFiltersChanged.InvokeAsync(request);
     }
 }
-

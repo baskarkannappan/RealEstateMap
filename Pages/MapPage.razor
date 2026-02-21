@@ -9,20 +9,15 @@
 
 <div class="map-page bootstrap-search-ui">
     <div class="container-fluid px-0">
-        <header class="sticky-top p-0 bg-white border-bottom d-flex align-items-center justify-content-between">
-            <div class="flex-grow-1 @(IsMobileSearchVisible ? "" : "mobile-hide")">
-                <FilterSection OnFiltersChanged="HandleFiltersChanged" OnMoreClicked="ToggleMoreFilters" />
-            </div>
+        <header class="sticky-top p-0 bg-white border-bottom">
+            <FilterSection OnFiltersChanged="HandleFiltersChanged" OnMoreClicked="ToggleMoreFilters" />
             
-            <button class="btn btn-link text-primary mobile-search-toggle d-md-none p-2" @onclick="ToggleMobileSearch">
-                <i class="oi oi-magnifying-glass" style="font-size: 1.5rem;"></i>
-            </button>
-
             @if (ShowMoreFilters)
             {
                 <MoreFiltersPanel OnApply="HandleMoreFiltersApplied" OnClose="ToggleMoreFilters" />
             }
         </header>
+
 
         @if (IsLoading)
         {

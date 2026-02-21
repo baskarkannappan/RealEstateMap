@@ -5,34 +5,42 @@
 
 <section class="list-section">
     <div class="list-section-header">
-        <h2>For Sale</h2>
-        <button type="button" class="btn btn-link list-see-more">See More</button>
+        <div>
+            <h2 class="h5 mb-1">Properties For Sale</h2>
+            <p class="text-muted small mb-0">@Houses.Count results found in this area</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @if (TotalPages > 1)
+            {
+                <span class="small text-muted d-none d-sm-inline">Page @CurrentPage of @TotalPages</span>
+            }
+        </div>
     </div>
 
-    <div class="house-list-grid" role="list">
-        @if (Houses.Count == 0)
-        {
-            <div class="card empty-results-card border-0 shadow-sm" role="status">
-                <div class="card-body">
-                    <h5 class="card-title mb-2">No matching results</h5>
-                    <p class="text-muted mb-1">Try zooming out</p>
-                    <p class="small mb-0"><span class="text-muted">@GeolocationStatus</span></p>
-                </div>
+    @if (!PagedHouses.Any())
+    {
+        <div class="card empty-results-card border-0 shadow-sm mt-4 p-5 text-center" role="status">
+            <div class="card-body">
+                <i class="oi oi-warning mb-3 text-warning" style="font-size: 2rem;"></i>
+                <h5 class="card-title mb-2">No matching results</h5>
+                <p class="text-muted mb-1">Try zooming out or adjusting your filters</p>
+                <p class="small mb-0"><span class="text-muted">@GeolocationStatus</span></p>
             </div>
-        }
-        else
-        {
-            <Virtualize Items="Houses.ToList()" Context="house" OverscanCount="4">
-                @{
-                    var price = BuildPrice(house);
-                    var beds = BuildBeds(house);
-                    var baths = BuildBaths(house);
-                    var sqft = BuildSqft(house);
-                    var type = BuildHomeType(house);
-                    var added = BuildAddedText(house);
-                    var hue = BuildPhotoHue(house);
-                    var hasVideo = HasVideo(house);
-                }
+        </div>
+    }
+    else
+    {
+        <div class="house-list-grid" role="list">
+            @foreach (var house in PagedHouses)
+            {
+                var price = BuildPrice(house);
+                var beds = BuildBeds(house);
+                var baths = BuildBaths(house);
+                var sqft = BuildSqft(house);
+                var type = BuildHomeType(house);
+                var added = BuildAddedText(house);
+                var hue = BuildPhotoHue(house);
+                var hasVideo = HasVideo(house);
 
                 <article class="card house-card house-card-modern" role="listitem">
                     <div class="house-card-media" style="--photo-hue: @hue">
@@ -78,35 +86,62 @@
                         <div class="house-price-row">
                             <div class="house-price">@price</div>
                             <span class="house-pill">For Sale</span>
-                            <span class="house-added">@added</span>
                         </div>
-                        <div class="house-address">@house.Address</div>
-                        <div class="house-neighborhood">@NeighborhoodText(house)</div>
+                        <div class="house-address h6 mb-1">@house.Address</div>
+                        <div class="house-neighborhood small text-muted">@NeighborhoodText(house)</div>
 
-                        <div class="house-meta-row">
+                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                            <span class="house-added small">@added</span>
                             @if (hasVideo)
                             {
                                 <span class="house-chip">Video Tour</span>
                             }
-                            <span class="house-meta">@MlsAndBroker(house)</span>
                         </div>
                     </div>
                 </article>
-            </Virtualize>
+            }
+        </div>
+
+        @if (TotalPages > 1)
+        {
+            <div class="list-pagination mt-4 d-flex flex-column flex-sm-row justify-content-between align-items-center py-3 border-top">
+                <div class="pagination-summary mb-3 mb-sm-0">
+                    <span class="small text-muted">Showing @((CurrentPage-1)*PageSize + 1) to @(Math.Min(CurrentPage*PageSize, Houses.Count)) of @Houses.Count results</span>
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => SetPage(CurrentPage - 1)" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </button>
+                        </li>
+                        @for (int i = 1; i <= TotalPages; i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                <button class="page-link" @onclick="() => SetPage(pageNum)">@pageNum</button>
+                            </li>
+                        }
+                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => SetPage(CurrentPage + 1)" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
         }
-    </div>
-
-
+    }
 </section>
 
 @if (ShowDetailsModal)
 {
     <div class="modal fade show d-block detail-modal" tabindex="-1" role="dialog" aria-modal="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0">
                     <div>
-                        <h5 class="modal-title">Property details</h5>
+                        <h5 class="modal-title h4">Property details</h5>
                         @if (SelectedHouse is not null)
                         {
                             <p class="text-muted small mb-0">@SelectedHouse.Address, @SelectedHouse.City</p>
@@ -114,12 +149,12 @@
                     </div>
                     <button type="button" class="btn-close" aria-label="Close" @onclick="CloseDetailsModal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body py-0">
                     <div class="markdown-content">@((MarkupString)DetailHtml)</div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseDetailsModal">Close</button>
-                    <button type="button" class="btn btn-primary" @onclick="CloseDetailsModal">Schedule tour</button>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light" @onclick="CloseDetailsModal">Close</button>
+                    <button type="button" class="btn btn-primary px-4" @onclick="CloseDetailsModal">Schedule tour</button>
                 </div>
             </div>
         </div>
@@ -142,6 +177,16 @@
 
     [Parameter]
     public string GeolocationStatus { get; set; } = "Geolocation: Checking...";
+
+    [Parameter]
+    public int PageSize { get; set; } = 6;
+
+    private int CurrentPage { get; set; } = 1;
+    private int TotalPages => (int)Math.Ceiling((double)Houses.Count / PageSize);
+
+    private IEnumerable<HouseLocation> PagedHouses => Houses
+        .Skip((CurrentPage - 1) * PageSize)
+        .Take(PageSize);
 
     private bool ShowDetailsModal;
     private HouseLocation? SelectedHouse;
@@ -195,6 +240,17 @@ Est. payment: $3,420 / mo
 
     protected override void OnParametersSet()
     {
+        // Reset to first page when houses change (e.g. during search)
+        CurrentPage = 1;
+    }
+
+    private void SetPage(int page)
+    {
+        if (page >= 1 && page <= TotalPages)
+        {
+            CurrentPage = page;
+            StateHasChanged();
+        }
     }
 
     private async Task OpenDetailsAsync(HouseLocation house)

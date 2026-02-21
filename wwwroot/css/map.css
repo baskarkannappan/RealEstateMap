@@ -1,9 +1,11 @@
 .map-page.bootstrap-search-ui {
-    --ui-font-size: 0.9rem;
-    --toolbar-height: 96px;
+    --ui-font-size: 0.85rem;
+    --toolbar-height: 56px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: var(--ui-font-size);
     padding: 0;
 }
+
 
 .filter-header {
     z-index: 1030;
@@ -168,9 +170,7 @@
 .filter-row {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 0.55rem;
-    margin-top: 0.85rem;
+    gap: 0.5rem;
 }
 
 .filter-chip {
@@ -247,6 +247,16 @@
     height: auto;
 }
 
+@media (max-width: 991.98px) {
+
+    .split-pane.map-visible .map-pane-fixed,
+    .split-pane.map-visible .gallery-pane {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+
 .map-pane-fixed {
     position: sticky;
     top: var(--toolbar-height);
@@ -261,9 +271,18 @@
 
 .house-list-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
 }
+
+@media (max-width: 576px) {
+    .house-list-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
 
 .list-section {
     display: flex;
@@ -273,17 +292,26 @@
 
 .list-section-header {
     display: flex;
+    flex-wrap: wrap;
+    /* allow wrapping */
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
 }
 
 .list-section-header h2 {
     font-size: 1.1rem;
     margin: 0;
+    flex: 1 1 auto;
+    /* allow shrinking and wrapping */
+    word-break: break-word;
+    /* wrap long words */
 }
 
 .list-see-more {
     font-size: 0.85rem;
+    flex: 0 0 auto;
+    /* keep button fixed */
     text-decoration: none;
 }
 
@@ -308,19 +336,26 @@
     flex-wrap: wrap;
 }
 
-.house-card,
-.empty-results-card {
-    border-radius: 0;
-    border: 1px solid #e5e7eb;
-    box-shadow: var(--shadow-sm);
+.house-card {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     background: #fff;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.house-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .house-card-modern {
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
+
 
 .house-card-media {
     position: relative;
@@ -418,11 +453,18 @@
 
 .house-card-body {
     padding: 0.85rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    word-wrap: break-word;
+    /* wrap text inside cards */
 }
+
 
 .house-price-row {
     display: flex;
     flex-wrap: wrap;
+    /* allow price & pills to wrap */
     gap: 0.4rem;
     align-items: baseline;
 }
@@ -657,13 +699,21 @@
     }
 
     .media-stats {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        gap: 0.4rem;
     }
+
 }
 
 .filter-section {
     position: relative;
     z-index: 1020;
+}
+
+.price-slider-container {
+    height: 40px;
+    display: flex;
+    align-items: center;
 }
 
 .price-slider-container input[type=range] {
@@ -672,7 +722,10 @@
     width: 100%;
     background: transparent;
     pointer-events: none;
+    position: absolute;
+    left: 0;
 }
+
 
 .price-slider-container input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -724,11 +777,19 @@
 }
 
 .filter-wrapper.is-hidden .filter-section {
-    margin-top: -60px;
-    /* Adjust based on header height */
+    transform: translateY(-100%);
     opacity: 0;
     pointer-events: none;
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
 }
+
+.filter-wrapper .filter-section {
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, height 0.3s ease-in-out;
+}
+
 
 .filter-toggle-btn {
     position: absolute;
@@ -764,6 +825,24 @@
     scrollbar-width: none;
 }
 
+.price-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.price-popup-content {
+    background: #fff;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+}
+
 @media (max-width: 768px) {
     .filter-section .row {
         flex-wrap: nowrap;
@@ -776,49 +855,60 @@
         bottom: -20px;
     }
 }
- / *   B a s e   V e r s i o n   4   -   M o b i l e   F i r s t   L a y o u t   * / 
- @ m e d i a   ( m a x - w i d t h :   7 6 8 p x )   { 
-         . s p l i t - p a n e   { 
-                 f l e x - d i r e c t i o n :   c o l u m n   ! i m p o r t a n t ; 
-                 h e i g h t :   a u t o   ! i m p o r t a n t ; 
-         } 
- 
-         . m a p - p a n e - f i x e d   { 
-                 h e i g h t :   4 0 0 p x   ! i m p o r t a n t ; 
-                 w i d t h :   1 0 0 %   ! i m p o r t a n t ; 
-                 p o s i t i o n :   r e l a t i v e   ! i m p o r t a n t ; 
-                 o r d e r :   - 1 ;   
-         } 
- 
-         . g a l l e r y - p a n e   { 
-                 h e i g h t :   a u t o   ! i m p o r t a n t ; 
-                 w i d t h :   1 0 0 %   ! i m p o r t a n t ; 
-         } 
- 
-         . f i l t e r - w r a p p e r . m o b i l e - h i d e   { 
-                 d i s p l a y :   n o n e ; 
-         } 
- 
-         . m o b i l e - s e a r c h - t o g g l e   { 
-                 d i s p l a y :   b l o c k   ! i m p o r t a n t ; 
-         } 
- 
-         . f i l t e r - s e c t i o n   . r o w   { 
-                 f l e x - w r a p :   n o w r a p ; 
-                 o v e r f l o w - x :   a u t o ; 
-         } 
- } 
- 
- . m o b i l e - s e a r c h - t o g g l e   { 
-         d i s p l a y :   n o n e ; 
- } 
- 
- . s p i n n e r - c o n t a i n e r   { 
-         p o s i t i o n :   f i x e d ; 
-         t o p :   5 0 % ; 
-         l e f t :   5 0 % ; 
-         t r a n s f o r m :   t r a n s l a t e ( - 5 0 % ,   - 5 0 % ) ; 
-         z - i n d e x :   2 0 0 0 ; 
- } 
-  
- 
+
+/* Base Version 4 - Mobile First Layout */
+@media (max-width: 768px) {
+    .split-pane {
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    .map-pane-fixed {
+        height: 400px !important;
+        width: 100% !important;
+        position: relative !important;
+        order: -1;
+    }
+
+    .gallery-pane {
+        height: auto !important;
+        width: 100% !important;
+    }
+
+    .filter-wrapper.mobile-hide {
+        display: none;
+    }
+
+    .mobile-search-toggle {
+        display: block !important;
+    }
+
+    .filter-section .row {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+
+}
+
+.mobile-search-toggle {
+    display: none;
+}
+
+.spinner-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+}
+
+@media (max-width: 767.98px) {
+    .filter-section .row>div {
+        margin-bottom: 0.25rem;
+    }
+
+    .price-slider-container {
+        width: 100% !important;
+        margin-top: 0.5rem;
+    }
+}
